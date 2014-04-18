@@ -19,23 +19,22 @@ public class JsonElement {
      * Type of JSON Element
      */
     public enum JSONType {
-        object,
-        array,
-        string,
-        number,
-        numberFloat,
-        bool,
-        date, // serialization only
-        undefined
+        OBJECT,
+        ARRAY,
+        STRING,
+        NUMBER,
+        BOOLEAN,
+        DATE, // serialization only
+        NULL,
+        ANY  // serialization only
     }
 
-    private JSONType type = JSONType.undefined;
+    private JSONType type = JSONType.NULL;
 
     // Storage
     private Map<String, JsonElement> objectData;
     private List<JsonElement> arrayData;
-    private Long numberData;
-    private Float floatData;
+    private Number numberData;
     private String stringData;
     private Boolean booleanData;
     private Date dateData;
@@ -51,12 +50,12 @@ public class JsonElement {
 
         // Try trivial variants
         if ("{}".equals(res) || "{ }".equals(res)) { // Empty Object
-            this.type = JSONType.object;
+            this.type = JSONType.OBJECT;
             objectData = new HashMap<>();
             return;
         }
         if ("[]".equals(res) || "[ ]".equals(res)) { // Empty Array
-            this.type = JSONType.array;
+            this.type = JSONType.ARRAY;
             arrayData = new ArrayList<>();
             return;
         }
@@ -71,7 +70,7 @@ public class JsonElement {
                     parseArray(res); // JSON Array [value1, value2, ...]
                     break;
                 case "\"":
-                    parseString(res); // JSON String "some string"
+                    parseString(res); // JSON String "some STRING"
                     break;
                 default:
                     parseOther(res); // Any other
@@ -94,7 +93,7 @@ public class JsonElement {
      */
     private void parseObject(String json) throws JsonException {
         json = removeChar(json, "{", "}");
-        this.type = JSONType.object;
+        this.type = JSONType.OBJECT;
         this.objectData = new HashMap<>();
 
         final char[] chars = json.trim().toCharArray();
@@ -146,7 +145,7 @@ public class JsonElement {
      */
     private void parseArray(String json) throws JsonException {
         json = removeChar(json, "[", "]");
-        this.type = JSONType.array;
+        this.type = JSONType.ARRAY;
         this.arrayData = new ArrayList<>();
         final char[] chars = json.trim().toCharArray();
 
@@ -186,15 +185,14 @@ public class JsonElement {
      */
     private void parseString(String json) {
         json = removeChar(json, "\"", "\"");
-        this.type = JSONType.string;
+        this.type = JSONType.STRING;
         this.stringData = json;
     }
 
     private void parseFloat(String json) {
-        this.type = JSONType.numberFloat;
-        this.floatData = Float.parseFloat(json);
+        this.type = JSONType.NUMBER;
+        this.numberData = Float.parseFloat(json);
     }
-
 
     /**
      * Parse Boolean, Number, Null or Undefined Elements
@@ -203,25 +201,25 @@ public class JsonElement {
      */
     private void parseOther(String json) {
         if (json.equals("true")) {
-            this.type = JSONType.bool;
+            this.type = JSONType.BOOLEAN;
             this.booleanData = true;
             return;
         }
         if (json.equals("false")) {
-            this.type = JSONType.bool;
+            this.type = JSONType.BOOLEAN;
             this.booleanData = false;
             return;
         }
-        if (json.equals("null") || json.equals("undefined")) {
-            this.type = JSONType.undefined;
+        if (json.equals("null") || json.equals("NULL")) {
+            this.type = JSONType.NULL;
             return;
         }
-        this.type = JSONType.number;
+        this.type = JSONType.NUMBER;
         this.numberData = Long.parseLong(json);
     }
 
     /**
-     * Remove given characters from the beginning and end of string
+     * Remove given characters from the beginning and end of STRING
      *
      * @param str - String
      * @param ch1 - Character to remove from beginning
@@ -243,27 +241,24 @@ public class JsonElement {
     public JsonElement(JSONType type) {
         this.type = type;
         switch (type) {
-            case object:
+            case OBJECT:
                 objectData = new HashMap<>();
                 break;
-            case array:
+            case ARRAY:
                 arrayData = new ArrayList<>();
                 break;
-            case bool:
+            case BOOLEAN:
                 booleanData = false;
                 break;
-            case number:
+            case NUMBER:
                 numberData = 0L;
                 break;
-            case numberFloat:
-                floatData = 0F;
-                break;
-            case string:
+            case STRING:
                 stringData = "";
                 break;
-            case date:
+            case DATE:
                 dateData = new Date();
-            case undefined:
+            case NULL:
             default:
                 /* Do nothing */
         }
@@ -273,41 +268,36 @@ public class JsonElement {
      * Create JSON Element of given type with initializer
      *
      * @param type  - Type of new JSON Element
-     * @param value - Initializer for JsonElement (HashMap<String, JsonElement> for "object", List<JsonElement> for "array", Boolean for "bool", Long for "number", String for "string", Ignored for "undefined")
+     * @param value - Initializer for JsonElement (HashMap<String, JsonElement> for "OBJECT", List<JsonElement> for "ARRAY", Boolean for "BOOLEAN", Long for "NUMBER", String for "STRING", Ignored for "NULL")
      * @throws JsonException
      */
     @SuppressWarnings("unchecked")
     public JsonElement(JSONType type, Object value) throws JsonException {
         this.type = type;
         switch (type) {
-            case object:
-                objectData = (HashMap<String, JsonElement>) value;
+            case OBJECT:
+                objectData = (Map<String, JsonElement>) value;
                 break;
-            case array:
+            case ARRAY:
                 createFromList(value);
                 break;
-            case bool:
+            case BOOLEAN:
                 if (!(value instanceof Boolean)) throw new JsonException("Value is not Boolean");
                 booleanData = (Boolean) value;
                 break;
-            case number:
-                if (value instanceof Long) numberData = (Long) value;
-                else if (value instanceof Integer) numberData = Long.parseLong(String.valueOf(value));
-                else throw new JsonException("Value is not Long or Integer");
+            case NUMBER:
+                if (value instanceof Number) numberData = (Number) value;
+                else throw new JsonException("Value is not Number");
                 break;
-            case numberFloat:
-                if (value instanceof Float) floatData = (Float) value;
-                else throw new JsonException("Value is not Float");
-                break;
-            case string:
+            case STRING:
                 if (!(value instanceof String)) throw new JsonException("Value is not String");
                 stringData = (String) value;
                 break;
-            case date:
+            case DATE:
                 if (!(value instanceof Date)) throw new JsonException("Value is not Date");
                 dateData = (Date) value;
                 break;
-            case undefined:
+            case NULL:
             default:
                 /* Do nothing */
         }
@@ -328,8 +318,8 @@ public class JsonElement {
             if (obj instanceof JsonElement) {
                 final JsonElement jsonElement = (JsonElement) obj;
                 addElement(jsonElement);
-            } else if (obj instanceof ConvertibleToJson) {
-                final JsonElement jsonElement = ((ConvertibleToJson) obj).toJSON();
+            } else if (obj instanceof JsonSerializable) {
+                final JsonElement jsonElement = ((JsonSerializable) obj).toJSON();
                 addElement(jsonElement);
             } else {
                 add(obj);
@@ -384,14 +374,14 @@ public class JsonElement {
     /**
      * @return the numberData
      */
-    public Long getNumberData() {
+    public Number getNumberData() {
         return numberData;
     }
 
     /**
      * @param numberData the numberData to set
      */
-    public void setNumberData(Long numberData) {
+    public void setNumberData(Number numberData) {
         this.numberData = numberData;
     }
 
@@ -423,14 +413,6 @@ public class JsonElement {
         this.booleanData = booleanData;
     }
 
-    public Float getFloatData() {
-        return floatData;
-    }
-
-    public void setFloatData(Float floatData) {
-        this.floatData = floatData;
-    }
-
     /**
      * Get JsonElement contents as Object
      *
@@ -438,21 +420,19 @@ public class JsonElement {
      */
     public Object getData() {
         switch (this.type) {
-            case object:
+            case OBJECT:
                 return this.objectData;
-            case array:
+            case ARRAY:
                 return this.arrayData;
-            case bool:
+            case BOOLEAN:
                 return this.booleanData;
-            case number:
+            case NUMBER:
                 return this.numberData;
-            case numberFloat:
-                return this.floatData;
-            case string:
+            case STRING:
                 return this.stringData;
-            case date:
+            case DATE:
                 return this.dateData;
-            case undefined:
+            case NULL:
             default:
                 return null;
         }
@@ -465,7 +445,7 @@ public class JsonElement {
      * @return SubElement
      */
     public JsonElement getSub(String name) {
-        if (this.type != JSONType.object) return null;
+        if (this.type != JSONType.OBJECT) return null;
         return this.objectData.get(name);
     }
 
@@ -476,7 +456,7 @@ public class JsonElement {
      * @return SubElement
      */
     public JsonElement getSub(int index) {
-        if (this.type != JSONType.array) return null;
+        if (this.type != JSONType.ARRAY) return null;
         return this.arrayData.get(index);
     }
 
@@ -485,10 +465,10 @@ public class JsonElement {
      * Get String Parameter of JSON Object Element
      *
      * @param name - name of Sub Element
-     * @return String value if JSON Element is object and has String Sub Element with given name, returns null otherwise
+     * @return String value if JSON Element is OBJECT and has String Sub Element with given name, returns null otherwise
      */
     private String getParameter(String name) {
-        if (this.type != JSONType.object) return null;
+        if (this.type != JSONType.OBJECT) return null;
         final JsonElement element = this.objectData.get(name);
         if (element == null) return null;
         return element.getStringData();
@@ -504,7 +484,7 @@ public class JsonElement {
     public String getStringElement(String name) throws JsonException {
         final Logger log = Logger.getLogger("getStringElement");
         String parameter = null;
-        if (this.type == JSONType.object) {
+        if (this.type == JSONType.OBJECT) {
             final JsonElement element = this.objectData.get(name);
             if (element != null)
                 parameter = element.getStringData();
@@ -527,33 +507,10 @@ public class JsonElement {
     public int getNumberElement(String name) throws JsonException {
         final Logger log = Logger.getLogger("getNumberElement");
         Integer parameter = null;
-        if (this.type == JSONType.object) {
+        if (this.type == JSONType.OBJECT) {
             final JsonElement element = this.objectData.get(name);
             if (element != null)
                 parameter = element.getNumberData().intValue();
-        }
-        if (parameter == null) {
-            final String error_message = "Required parameter is missing: " + name;
-            log.severe(error_message);
-            throw new JsonException(error_message);
-        }
-        return parameter;
-    }
-
-    /**
-     * Try to get JSON Object Sub Element of type Float
-     *
-     * @param name - Parameter Name
-     * @return Float value
-     * @throws JsonException
-     */
-    public float getFloatElement(String name) throws JsonException {
-        final Logger log = Logger.getLogger("getFloatElement");
-        Float parameter = null;
-        if (this.type == JSONType.object) {
-            final JsonElement element = this.objectData.get(name);
-            if (element != null)
-                parameter = element.getFloatData();
         }
         if (parameter == null) {
             final String error_message = "Required parameter is missing: " + name;
@@ -573,7 +530,7 @@ public class JsonElement {
     public boolean getBooleanElement(String name) throws JsonException {
         final Logger log = Logger.getLogger("getBooleanElement");
         Boolean parameter = null;
-        if (this.type == JSONType.object) {
+        if (this.type == JSONType.OBJECT) {
             final JsonElement element = this.objectData.get(name);
             if (element != null)
                 parameter = element.getBooleanData();
@@ -588,7 +545,7 @@ public class JsonElement {
 
 
     /**
-     * Try to get object from JSON Object Parameter
+     * Try to get OBJECT from JSON Object Parameter
      *
      * @param name - Parameter Name
      * @return JsonElement value
@@ -612,7 +569,7 @@ public class JsonElement {
      * @throws JsonException
      */
     public void addElement(JsonElement element) throws JsonException {
-        if (type != JSONType.array) throw new JsonException("addElement error: JSON Element is not array");
+        if (type != JSONType.ARRAY) throw new JsonException("addElement error: JSON Element is not ARRAY");
         if (arrayData == null) throw new JsonException("addElement error: JSON Array data is null");
         arrayData.add(element);
     }
@@ -621,13 +578,13 @@ public class JsonElement {
      * Add SubElement to JSON Object
      *
      * @param element - JsonElement to add
-     * @param name    - name of element in object
+     * @param name    - name of element in OBJECT
      * @throws JsonException
      */
     public void addElement(JsonElement element, String name) throws JsonException {
-        if (type != JSONType.object) throw new JsonException("addElement error: JSON Element is not object");
+        if (type != JSONType.OBJECT) throw new JsonException("addElement error: JSON Element is not OBJECT");
         if (objectData == null) throw new JsonException("addElement error: JSON Object data is null");
-        if (element == null) objectData.put(name, new JsonElement(JSONType.undefined));
+        if (element == null) objectData.put(name, new JsonElement(JSONType.NULL));
         else objectData.put(name, element);
     }
 
@@ -637,69 +594,69 @@ public class JsonElement {
      * @param element - JsonElement to add
      * @throws JsonException
      */
-    public void addElement(ConvertibleToJson element) throws JsonException {
+    public void addElement(JsonSerializable element) throws JsonException {
         if (element != null) addElement(element.toJSON());
-        else addElement(new JsonElement(JSONType.undefined));
+        else addElement(new JsonElement(JSONType.NULL));
     }
 
     /**
      * Add SubElement to JSON Object
      *
      * @param element - JsonElement to add
-     * @param name    - name of element in object
+     * @param name    - name of element in OBJECT
      * @throws JsonException
      */
-    public void addElement(ConvertibleToJson element, String name) throws JsonException {
+    public void addElement(JsonSerializable element, String name) throws JsonException {
         if (element != null) addElement(element.toJSON(), name);
-        else addElement(new JsonElement(JSONType.undefined), name);
+        else addElement(new JsonElement(JSONType.NULL), name);
     }
 
     /**
      * Add new SubElement to JSON Array with given data
      *
-     * @param elementData - data to add to array. Types:
-     *                    Map<String, JsonElement> 		- "object",
-     *                    List<JsonElement>				- "array",
-     *                    Boolean 						- "bool",
-     *                    Integer 						- "number"
-     *                    Long 							- "number",
-     *                    String 							- "string",
-     *                    other 							- "undefined"
+     * @param elementData - data to add to ARRAY. Types:
+     *                    Map<String, JsonElement> 		- "OBJECT",
+     *                    List<JsonElement>				- "ARRAY",
+     *                    Boolean 						- "BOOLEAN",
+     *                    Integer 						- "NUMBER"
+     *                    Long 							- "NUMBER",
+     *                    String 							- "STRING",
+     *                    other 							- "NULL"
      * @throws JsonException
      */
     public void add(Object elementData) throws JsonException {
-        if (type != JSONType.array) throw new JsonException("addElement error: JSON Element is not array");
+        if (type != JSONType.ARRAY) throw new JsonException("addElement error: JSON Element is not ARRAY");
         if (arrayData == null) throw new JsonException("addElement error: JSON Array data is null");
         if (elementData == null) {
-            arrayData.add(new JsonElement(JSONType.undefined));
+            arrayData.add(new JsonElement(JSONType.NULL));
             return;
         }
-        final JsonElement element = new JsonElement(getType(elementData.getClass().getSimpleName()), elementData);
+        final JsonElement element = new JsonElement(getType(elementData), elementData);
         arrayData.add(element);
     }
 
     /**
      * Add new SubElement to JSON Object with given data
      *
-     * @param elementData - data to add to array. Types:
-     *                    Map<String, JsonElement> 		- "object",
-     *                    List<JsonElement>				- "array",
-     *                    Boolean 						- "bool",
-     *                    Integer 						- "number"
-     *                    Long 							- "number",
-     *                    String 							- "string",
-     *                    other 							- "undefined"
-     * @param name        - name of element in object
+     * @param elementData - data to add to ARRAY. Types:
+     *                    Map<String, JsonElement> 		- "OBJECT",
+     *                    List<JsonElement>				- "ARRAY",
+     *                    Boolean 						- "BOOLEAN",
+     *                    Integer 						- "NUMBER"
+     *                    Long 							- "NUMBER",
+     *                    String 							- "STRING",
+     *                    other 							- "NULL"
+     * @param name        - name of element in OBJECT
      * @throws JsonException
      */
     public void add(Object elementData, String name) throws JsonException {
-        if (type != JSONType.object) throw new JsonException("addElement error: JSON Element is not object");
+        if (type != JSONType.OBJECT) throw new JsonException("addElement error: JSON Element is not OBJECT");
         if (objectData == null) throw new JsonException("addElement error: JSON Object data is null");
         if (elementData == null) {
-            objectData.put(name, new JsonElement(JSONType.undefined));
+            objectData.put(name, new JsonElement(JSONType.NULL));
             return;
         }
-        final JsonElement element = new JsonElement(getType(elementData.getClass().getSimpleName()), elementData);
+        final JsonElement element = new JsonElement(getType(elementData), elementData);
         objectData.put(name, element);
     }
 
@@ -708,24 +665,47 @@ public class JsonElement {
      *
      * @param className - name of the class returned by Object.getClass().getSimpleName()
      * @return JSONType:
-     *         Map<String, JsonElement> 		- "object",
-     *         List<JsonElement>				- "array",
-     *         Boolean 						- "bool",
-     *         Integer 						- "number"
-     *         Long 							- "number",
-     *         String 							- "string",
-     *         other 							- "undefined"
+     *         Map<String, JsonElement> 		- "OBJECT",
+     *         List<JsonElement>				- "ARRAY",
+     *         Boolean 						- "BOOLEAN",
+     *         Integer 						- "NUMBER"
+     *         Long 							- "NUMBER",
+     *         String 							- "STRING",
+     *         other 							- "NULL"
      */
-    private JSONType getType(String className) {
-        if (className.equals("String")) return JSONType.string;
-        if (className.equals("Integer") || className.equals("Long")) return JSONType.number;
+/*    private JSONType getType(String className) {
+        if (className.equals("String")) return JSONType.STRING;
+        if (className.equals("Integer") || className.equals("Long")) return JSONType.NUMBER;
         if (className.equals("Float")) return JSONType.numberFloat;
-        if (className.equals("Boolean")) return JSONType.bool;
-        if (className.equals("List") || className.equals("ArrayList")) return JSONType.array;
-        if (className.equals("Map") || className.equals("HashMap")) return JSONType.object;
-        if (className.equals("Date")) return JSONType.date;
-        return JSONType.undefined;
+        if (className.equals("Boolean")) return JSONType.BOOLEAN;
+        if (className.equals("List") || className.equals("ArrayList")) return JSONType.ARRAY;
+        if (className.equals("Map") || className.equals("HashMap")) return JSONType.OBJECT;
+        if (className.equals("Date")) return JSONType.DATE;
+        return JSONType.NULL;
 
+    }*/
+
+    /**
+     * Get JsonElement Type by name of the given Object Class
+     *
+     * @param object - object to get JSON Type from
+     * @return JSONType:
+     *         Map<String, JsonElement> 		- "OBJECT",
+     *         List<JsonElement>				- "ARRAY",
+     *         Boolean 						- "BOOLEAN",
+     *         Integer 						- "NUMBER"
+     *         Long 							- "NUMBER",
+     *         String 							- "STRING",
+     *         other 							- "NULL"
+     */
+    private JSONType getType(Object object) {
+        if (object instanceof String) return JSONType.STRING;
+        if (object instanceof Number) return JSONType.NUMBER;
+        if (object instanceof Boolean) return JSONType.BOOLEAN;
+        if (object instanceof List) return JSONType.ARRAY;
+        if (object instanceof Map) return JSONType.OBJECT;
+        if (object instanceof Date)  return JSONType.DATE;
+        return JSONType.NULL;
     }
 
     /**
@@ -735,7 +715,7 @@ public class JsonElement {
      */
     public String serialize() {
         switch (this.type) {
-            case object:
+            case OBJECT:
                 String resObject = "";
                 for (Map.Entry<String, JsonElement> entry : this.objectData.entrySet()) {
                     if (!resObject.isEmpty()) resObject += ", ";
@@ -744,29 +724,34 @@ public class JsonElement {
                     resObject += String.format("\"%1$s\" : %2$s", key, (value != null ? value.serialize() : "\"null\""));
                 }
                 return "{" + resObject + "}";
-            case array:
+            case ARRAY:
                 String resArray = "";
                 for (JsonElement anArrayData : this.arrayData) {
                     if (!resArray.isEmpty()) resArray += ", ";
                     resArray += (anArrayData).serialize();
                 }
                 return "[" + resArray + "]";
-            case bool:
+            case BOOLEAN:
                 return this.booleanData ? "true" : "false";
-            case number:
-                return this.numberData.toString();
-            case numberFloat:
-                return this.floatData.toString();
-            case string:
+            case NUMBER:
+                String res = "";
+                if (this.numberData instanceof Byte) res += this.numberData.byteValue();
+                else if (this.numberData instanceof Short) res += this.numberData.shortValue();
+                else if (this.numberData instanceof Integer) res += this.numberData.intValue();
+                else if (this.numberData instanceof Long) res += this.numberData.longValue();
+                else if (this.numberData instanceof Float) res += this.numberData.floatValue();
+                else if (this.numberData instanceof Double) res += this.numberData.doubleValue();
+                return res;
+            case STRING:
                 //return "\"" + this.stringData.replaceAll("\\\\", "\\\\\\\\") + "\"";
                 return "\"" + stringForJSON(this.stringData) + "\"";
-            case date:
+            case DATE:
                 @SuppressWarnings("SpellCheckingInspection") final
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
                 return "\"" + dateFormat.format(this.dateData).replaceAll("\\\\", "\\\\\\\\") + "\"";
-            case undefined:
+            case NULL:
             default:
-                return "\"undefined\"";
+                return "\"null\"";
         }
     }
 
