@@ -1,6 +1,6 @@
 package com.staim.lightjson.annotations;
 
-import com.staim.lightjson.JsonElement;
+import com.staim.lightjson.JsonType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,5 +16,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface JsonSetter {
-    JsonElement.JSONType type() default JsonElement.JSONType.ANY;
+    JsonType type() default JsonType.ANY;
 }

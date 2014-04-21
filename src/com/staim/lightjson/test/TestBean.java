@@ -28,7 +28,7 @@ public class TestBean {
         this.number = number;
     }
 
-    //@JsonGetter(type=JsonElement.JSONType.STRING)
+    //@JsonGetter(type=JsonElement.JsonType.STRING)
     public String getString() {
         return string;
     }
@@ -36,7 +36,7 @@ public class TestBean {
         this.string = string;
     }
 
-    //@JsonGetter(type=JsonElement.JSONType.BOOLEAN)
+    //@JsonGetter(type=JsonElement.JsonType.BOOLEAN)
     public boolean isBool() {
         return bool;
     }

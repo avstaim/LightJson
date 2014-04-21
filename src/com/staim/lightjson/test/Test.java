@@ -1,14 +1,11 @@
 package com.staim.lightjson.test;
 
 import com.staim.lightjson.Json;
-import com.staim.lightjson.JsonElement;
 import com.staim.lightjson.JsonException;
 import com.staim.lightjson.LightJson;
-import com.staim.lightjson.annotations.JsonGetter;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by a_scherbinin on 17.04.14.
@@ -45,8 +42,8 @@ public class Test {
 
     }
 
-    public static JsonElement processObject(Object object) throws JsonException {
-        JsonElement jsonElement = new JsonElement(JsonElement.JSONType.OBJECT);
+   /* public static JsonElement processObject(Object object) throws JsonException {
+        JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
 
         Class aClass = object.getClass();
 
@@ -58,18 +55,18 @@ public class Test {
             for (Method method : methods) {
                 if (isClassAnnotated || method.isAnnotationPresent(JsonGetter.class)) {
                     JsonGetter annotation = isClassAnnotated ? (JsonGetter) aClass.getAnnotation(JsonGetter.class) : method.getAnnotation(JsonGetter.class);
-                    JsonElement.JSONType type = annotation.type();
+                    JsonType type = annotation.type();
                     Class<?> returnType = method.getReturnType();
 
-                    if (type == JsonElement.JSONType.ANY) {
+                    if (type == JsonType.ANY) {
                         if (Number.class.isAssignableFrom(returnType) || int.class.isAssignableFrom(returnType) || long.class.isAssignableFrom(returnType) || float.class.isAssignableFrom(returnType) || double.class.isAssignableFrom(returnType))
-                            type = JsonElement.JSONType.NUMBER;
-                        else if (String.class.isAssignableFrom(returnType)) type = JsonElement.JSONType.STRING;
+                            type = JsonType.NUMBER;
+                        else if (String.class.isAssignableFrom(returnType)) type = JsonType.STRING;
                         else if (boolean.class.isAssignableFrom(returnType) || Boolean.class.isAssignableFrom(returnType))
-                            type = JsonElement.JSONType.BOOLEAN;
-                        else if (List.class.isAssignableFrom(returnType)) type = JsonElement.JSONType.ARRAY;
-                        else if (Date.class.isAssignableFrom(returnType)) type = JsonElement.JSONType.DATE;
-                        else if (Map.class.isAssignableFrom(returnType) || returnType.isAnnotationPresent(JsonGetter.class)) type = JsonElement.JSONType.OBJECT;
+                            type = JsonType.BOOLEAN;
+                        else if (List.class.isAssignableFrom(returnType)) type = JsonType.ARRAY;
+                        else if (Date.class.isAssignableFrom(returnType)) type = JsonType.DATE;
+                        else if (Map.class.isAssignableFrom(returnType) || returnType.isAnnotationPresent(JsonGetter.class)) type = JsonType.OBJECT;
                         else {
                             //Unsupported type
                             continue;
@@ -78,7 +75,7 @@ public class Test {
 
 
                     String name = method.getName();
-                    if (type != JsonElement.JSONType.NULL && !name.startsWith(type == JsonElement.JSONType.BOOLEAN ? "is" : "get")) {
+                    if (type != JsonType.NULL && !name.startsWith(type == JsonType.BOOLEAN ? "is" : "get")) {
                         if (!isClassAnnotated) throw new JsonException("Naming convention violated: " + name);
                         else continue;
                     }
@@ -129,7 +126,7 @@ public class Test {
                             } else throw new JsonException("Wrong return type");
                             break;
                         case NULL:
-                            jsonElement.addElement(new JsonElement(JsonElement.JSONType.NULL), name);
+                            jsonElement.addElement(new JsonElement(JsonType.NULL), name);
                     }
                 }
                 System.out.println(method.getName() + " - " + method.getReturnType().getName());
@@ -141,7 +138,7 @@ public class Test {
         } catch (InvocationTargetException|IllegalAccessException e) {
             throw new JsonException("Getter Invocation failed");
         }
-    }
+    }*/
 
 
 

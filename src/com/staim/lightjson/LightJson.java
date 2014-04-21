@@ -37,16 +37,16 @@ public class LightJson<T> implements Json<T> {
         return element;
     }
 
-    private static JsonElement.JSONType getTypeForClass(Class<?> aClass) {
-        JsonElement.JSONType type;
+    private static JsonType getTypeForClass(Class<?> aClass) {
+        JsonType type;
         if (Number.class.isAssignableFrom(aClass) || int.class.isAssignableFrom(aClass) || long.class.isAssignableFrom(aClass) || float.class.isAssignableFrom(aClass) || double.class.isAssignableFrom(aClass))
-            type = JsonElement.JSONType.NUMBER;
-        else if (String.class.isAssignableFrom(aClass)) type = JsonElement.JSONType.STRING;
+            type = JsonType.NUMBER;
+        else if (String.class.isAssignableFrom(aClass)) type = JsonType.STRING;
         else if (boolean.class.isAssignableFrom(aClass) || Boolean.class.isAssignableFrom(aClass))
-            type = JsonElement.JSONType.BOOLEAN;
-        else if (List.class.isAssignableFrom(aClass)) type = JsonElement.JSONType.ARRAY;
-        else if (Date.class.isAssignableFrom(aClass)) type = JsonElement.JSONType.DATE;
-        else if (Map.class.isAssignableFrom(aClass) || aClass.isAnnotationPresent(JsonGetter.class)) type = JsonElement.JSONType.OBJECT;
+            type = JsonType.BOOLEAN;
+        else if (List.class.isAssignableFrom(aClass)) type = JsonType.ARRAY;
+        else if (Date.class.isAssignableFrom(aClass)) type = JsonType.DATE;
+        else if (Map.class.isAssignableFrom(aClass) || aClass.isAnnotationPresent(JsonGetter.class)) type = JsonType.OBJECT;
         else {
             //Unsupported type
             throw new UnsupportedOperationException();
@@ -54,30 +54,30 @@ public class LightJson<T> implements Json<T> {
         return type;
     }
 
-    private static JsonElement.JSONType getTypeForMethod(Method method) throws UnsupportedOperationException {
+    private static JsonType getTypeForMethod(Method method) throws UnsupportedOperationException {
         Class<?> returnType = method.getReturnType();
         return getTypeForClass(returnType);
     }
 
     private static JsonElement processObject(Object object) throws JsonException {
-        JsonElement jsonElement = new JsonElement(JsonElement.JSONType.OBJECT);
+        JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
         Class aClass = object.getClass();
         boolean isClassAnnotated = aClass.isAnnotationPresent(JsonObject.class);
         Method[] methods = aClass.getMethods();
 
         try {
             for (Method method : methods) {
-                JsonElement.JSONType type = null;
+                JsonType type = null;
                 String jsonName = "";
                 if (method.isAnnotationPresent(JsonGetter.class)) {
                     JsonGetter annotation = method.getAnnotation(JsonGetter.class);
                     type = annotation.type();
                     jsonName = annotation.name();
                 } else if (isClassAnnotated) {
-                    type = JsonElement.JSONType.ANY;
+                    type = JsonType.ANY;
                 }
                 if (type != null) {
-                    if (type == JsonElement.JSONType.ANY) {
+                    if (type == JsonType.ANY) {
                         try { type = getTypeForMethod(method); }
                         catch (UnsupportedOperationException e) { continue; }
                     }
@@ -86,11 +86,11 @@ public class LightJson<T> implements Json<T> {
                     if (name.equals("getClass")) continue;
 
                     if (jsonName.isEmpty()) {
-                        if (type != JsonElement.JSONType.NULL && !name.startsWith(type == JsonElement.JSONType.BOOLEAN ? "is" : "get")) {
+                        if (type != JsonType.NULL && !name.startsWith(type == JsonType.BOOLEAN ? "is" : "get")) {
                             if (!isClassAnnotated) throw new JsonException("Naming convention violated: " + name);
                             else continue;
                         }
-                        jsonName = name.substring(type == JsonElement.JSONType.BOOLEAN ? 2 : 3).toLowerCase();
+                        jsonName = name.substring(type == JsonType.BOOLEAN ? 2 : 3).toLowerCase();
                     }
 
                     Class<?> returnType = method.getReturnType();
@@ -102,18 +102,18 @@ public class LightJson<T> implements Json<T> {
                         case ARRAY:
                             if (List.class.isAssignableFrom(returnType)) {
                                 List list = (List)method.invoke(object);
-                                jsonElement.addElement(processCollection(list), jsonName);
+                                jsonElement.add(jsonName, processCollection(list));
                             } else throw new JsonException("Wrong return type");
                             break;
                         case OBJECT:
                             if (Map.class.isAssignableFrom(returnType)) {
                                 Map map = (Map)method.invoke(object);
                                 //TODO: verify map type
-                                jsonElement.add(map, name.substring(3).toLowerCase());
+                                jsonElement.add(name.substring(3).toLowerCase(), map);
                             } else if (returnType.isAnnotationPresent(JsonGetter.class)) {
                                 Object subObject = method.invoke(object);
                                 JsonElement subElement = processObject(subObject);
-                                jsonElement.addElement(subElement, jsonName);
+                                jsonElement.add(jsonName, subElement);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case STRING:
@@ -128,23 +128,23 @@ public class LightJson<T> implements Json<T> {
                         case NUMBER:
                             if (Number.class.isAssignableFrom(returnType) || long.class.isAssignableFrom(returnType) || int.class.isAssignableFrom(returnType) || double.class.isAssignableFrom(returnType) || float.class.isAssignableFrom(returnType)) {
                                 Number number = (Number)method.invoke(object);
-                                jsonElement.add(number, jsonName);
+                                jsonElement.add(jsonName, number);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case BOOLEAN:
                             if (Boolean.class.isAssignableFrom(returnType) || boolean.class.isAssignableFrom(returnType)) {
                                 Boolean bool = (Boolean)method.invoke(object);
-                                jsonElement.add(bool, jsonName);
+                                jsonElement.add(jsonName, bool);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case DATE:
                             if (Date.class.isAssignableFrom(returnType)) {
                                 Date date = (Date)method.invoke(object);
-                                jsonElement.add(date, jsonName);
+                                jsonElement.add(jsonName, date);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case NULL:
-                            jsonElement.addElement(new JsonElement(JsonElement.JSONType.NULL), name);
+                            jsonElement.add(name, new JsonElement(JsonType.NULL));
                     }
                 }
             }
@@ -154,8 +154,9 @@ public class LightJson<T> implements Json<T> {
         }
     }
 
+    @SuppressWarnings("RedundantCast")
     private static JsonElement processCollection(Collection collection) throws JsonException {
-        JsonElement jsonElement = new JsonElement(JsonElement.JSONType.ARRAY);
+        JsonElement jsonElement = new JsonElement(JsonType.ARRAY);
         if (collection.isEmpty()) return jsonElement;
         Class genericClass;
         Iterator it = collection.iterator();
@@ -163,7 +164,7 @@ public class LightJson<T> implements Json<T> {
         else return jsonElement;
         if (genericClass != null) {
 
-            JsonElement.JSONType type;
+            JsonType type;
             try { type = getTypeForClass(genericClass); }
             catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Collection"); }
 
@@ -173,25 +174,25 @@ public class LightJson<T> implements Json<T> {
                     // never go here
                     break;
                 case ARRAY:
-                    while (it.hasNext()) jsonElement.addElement(processCollection((Collection) it.next()));
+                    while (it.hasNext()) jsonElement.add(processCollection((Collection) it.next()));
                     break;
                 case OBJECT:
-                    while (it.hasNext()) jsonElement.addElement(processObject(it.next()));
+                    while (it.hasNext()) jsonElement.add(processObject(it.next()));
                     break;
                 case STRING:
-                    while (it.hasNext()) jsonElement.add((String)it.next());
+                    while (it.hasNext()) jsonElement.add((String) it.next());
                     break;
                 case NUMBER:
-                    while (it.hasNext()) jsonElement.add((Number)it.next());
+                    while (it.hasNext()) jsonElement.add((Number) it.next());
                     break;
                 case BOOLEAN:
-                    while (it.hasNext()) jsonElement.add((Boolean)it.next());
+                    while (it.hasNext()) jsonElement.add((Boolean) it.next());
                     break;
                 case DATE:
                     while (it.hasNext()) jsonElement.add((Date)it.next());
                     break;
                 case NULL:
-                    while (it.hasNext()) jsonElement.addElement(new JsonElement(JsonElement.JSONType.NULL));
+                    while (it.hasNext()) jsonElement.add(new JsonElement(JsonType.NULL));
             }
         } else throw new JsonException("Unsupported Collection");
         return jsonElement;
