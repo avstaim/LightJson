@@ -17,4 +17,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface JsonSetter {
     JsonType type() default JsonType.ANY;
+    String name() default "";
 }

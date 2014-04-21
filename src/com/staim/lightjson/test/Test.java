@@ -17,6 +17,12 @@ public class Test {
         testBean.setNumber(10);
         testBean.setString("Hello world");
 
+        TestBean2 testBean2 = new TestBean2();
+        testBean2.setInteger2(25);
+        testBean2.setString2("Whatszzupppp!!!");
+
+        testBean.setTestBean2(testBean2);
+
         //int[] arr = {0, 1, 2, 3, 4};
         //List<int[]> myList = Arrays.asList(arr);
 

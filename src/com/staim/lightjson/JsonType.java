@@ -1,7 +1,7 @@
 package com.staim.lightjson;
 
 /**
- * Type of JSON Element
+ * Type of Json Element
  */
 public enum JsonType {
     OBJECT,

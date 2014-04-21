@@ -6,7 +6,7 @@ import java.text.StringCharacterIterator;
 import java.util.*;
 
 /**
- * JSON Parser\Serializer
+ * Json Element for Parsing and Serialization
  *
  */
 @SuppressWarnings("UnusedDeclaration")
@@ -435,7 +435,7 @@ public class JsonElement {
                 return "\"" + dateFormat.format(this.dateData).replaceAll("\\\\", "\\\\\\\\") + "\"";
             case NULL:
             default:
-                return "\"null\"";
+                return "null";
         }
     }
 

@@ -44,9 +44,9 @@ public class LightJson<T> implements Json<T> {
         else if (String.class.isAssignableFrom(aClass)) type = JsonType.STRING;
         else if (boolean.class.isAssignableFrom(aClass) || Boolean.class.isAssignableFrom(aClass))
             type = JsonType.BOOLEAN;
-        else if (List.class.isAssignableFrom(aClass)) type = JsonType.ARRAY;
+        else if (Collection.class.isAssignableFrom(aClass)) type = JsonType.ARRAY;
         else if (Date.class.isAssignableFrom(aClass)) type = JsonType.DATE;
-        else if (Map.class.isAssignableFrom(aClass) || aClass.isAnnotationPresent(JsonGetter.class)) type = JsonType.OBJECT;
+        else if (Map.class.isAssignableFrom(aClass) || aClass.isAnnotationPresent(JsonObject.class)) type = JsonType.OBJECT;
         else {
             //Unsupported type
             throw new UnsupportedOperationException();
@@ -60,9 +60,14 @@ public class LightJson<T> implements Json<T> {
     }
 
     private static JsonElement processObject(Object object) throws JsonException {
-        JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
+        if (object == null) return new JsonElement(JsonType.NULL);
+
         Class aClass = object.getClass();
-        boolean isClassAnnotated = aClass.isAnnotationPresent(JsonObject.class);
+        if (!aClass.isAnnotationPresent(JsonObject.class)) throw new JsonException("Class is not annotated as JsonObject");
+
+        JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
+
+        boolean isAutomaticMethodBinding = ((JsonObject)aClass.getAnnotation(JsonObject.class)).AutomaticMethodBinding();
         Method[] methods = aClass.getMethods();
 
         try {
@@ -73,7 +78,7 @@ public class LightJson<T> implements Json<T> {
                     JsonGetter annotation = method.getAnnotation(JsonGetter.class);
                     type = annotation.type();
                     jsonName = annotation.name();
-                } else if (isClassAnnotated) {
+                } else if (isAutomaticMethodBinding) {
                     type = JsonType.ANY;
                 }
                 if (type != null) {
@@ -87,7 +92,7 @@ public class LightJson<T> implements Json<T> {
 
                     if (jsonName.isEmpty()) {
                         if (type != JsonType.NULL && !name.startsWith(type == JsonType.BOOLEAN ? "is" : "get")) {
-                            if (!isClassAnnotated) throw new JsonException("Naming convention violated: " + name);
+                            if (!isAutomaticMethodBinding) throw new JsonException("Naming convention violated: " + name);
                             else continue;
                         }
                         jsonName = name.substring(type == JsonType.BOOLEAN ? 2 : 3).toLowerCase();
@@ -110,7 +115,7 @@ public class LightJson<T> implements Json<T> {
                                 Map map = (Map)method.invoke(object);
                                 //TODO: verify map type
                                 jsonElement.add(name.substring(3).toLowerCase(), map);
-                            } else if (returnType.isAnnotationPresent(JsonGetter.class)) {
+                            } else if (returnType.isAnnotationPresent(JsonObject.class)) {
                                 Object subObject = method.invoke(object);
                                 JsonElement subElement = processObject(subObject);
                                 jsonElement.add(jsonName, subElement);
@@ -123,7 +128,7 @@ public class LightJson<T> implements Json<T> {
                             } else if (Object.class.isAssignableFrom(returnType)) {
                                 string = method.invoke(object).toString();
                             } else throw new JsonException("Wrong return type");
-                            jsonElement.add(string, jsonName);
+                            jsonElement.add(jsonName, string);
                             break;
                         case NUMBER:
                             if (Number.class.isAssignableFrom(returnType) || long.class.isAssignableFrom(returnType) || int.class.isAssignableFrom(returnType) || double.class.isAssignableFrom(returnType) || float.class.isAssignableFrom(returnType)) {
