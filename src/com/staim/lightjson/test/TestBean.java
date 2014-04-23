@@ -1,8 +1,7 @@
 package com.staim.lightjson.test;
 
-import com.staim.lightjson.JsonType;
-import com.staim.lightjson.annotations.JsonGetter;
 import com.staim.lightjson.annotations.JsonObject;
+import com.staim.lightjson.annotations.JsonSetter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +9,7 @@ import java.util.List;
 /**
  * Created by a_scherbinin on 17.04.14.
  */
-@JsonObject
+@JsonObject(AutomaticMethodBinding = true)
 public class TestBean {
     private int number;
     private String string;
@@ -20,11 +19,9 @@ public class TestBean {
 
     public TestBean() {}
 
-    @JsonGetter
     public int getNumber() {
         return number;
     }
-    @JsonGetter(name="customInteger")
     public Integer getNumberAsInteger() {
         return number;
     }
@@ -32,7 +29,6 @@ public class TestBean {
         this.number = number;
     }
 
-    @JsonGetter(type=JsonType.STRING)
     public String getString() {
         return string;
     }
@@ -40,7 +36,6 @@ public class TestBean {
         this.string = string;
     }
 
-    @JsonGetter(type=JsonType.BOOLEAN)
     public boolean isBool() {
         return bool;
     }
@@ -48,15 +43,14 @@ public class TestBean {
         this.bool = bool;
     }
 
-    @JsonGetter
     public List<Integer> getIntegerList() {
         return integerList;
     }
+    @JsonSetter(genericClass = Integer.class)
     public void setIntegerList(List<Integer> integerList) {
         this.integerList = integerList;
     }
 
-    @JsonGetter(type = JsonType.OBJECT, name = "bean2")
     public TestBean2 getTestBean2() {
         return testBean2;
     }
@@ -64,7 +58,6 @@ public class TestBean {
         this.testBean2 = testBean2;
     }
 
-    @JsonGetter(type = JsonType.ARRAY, name = "testBean2List")
     public List<TestBean2> testBean2List() {
         List<TestBean2> testBean2s = new ArrayList<>();
         for (int i = 0; i < 6; i++) {

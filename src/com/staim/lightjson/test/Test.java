@@ -39,12 +39,30 @@ public class Test {
             e.printStackTrace();
         }*/
 
+        String testJson;
+
         try {
             Json<TestBean> jsonTestBean = new LightJson<>(testBean);
-            System.out.println("result: " + jsonTestBean.marshal());
+            testJson = jsonTestBean.marshal();
+            System.out.println("marshal result: " + testJson);
+        } catch (JsonException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            Json<TestBean> jsonTestBean = new LightJson<>(testJson);
+            TestBean uTestBean = jsonTestBean.unmarshal(TestBean.class);
+            System.out.println("unmarshal result: " + uTestBean.getString() + " - " + uTestBean.getNumber() + " - " + uTestBean.isBool() + " - " + uTestBean.getIntegerList().size());
+
+            for (Integer i : uTestBean.getIntegerList())
+                System.out.println("list: " + i);
+
+            System.out.println("unmarshal bean2: " + uTestBean.getTestBean2().getInteger2() + " - " + uTestBean.getTestBean2().getString2());
         } catch (JsonException e) {
             e.printStackTrace();
         }
+
 
     }
 

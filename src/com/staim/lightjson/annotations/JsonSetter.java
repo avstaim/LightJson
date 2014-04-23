@@ -18,4 +18,5 @@ import java.lang.annotation.Target;
 public @interface JsonSetter {
     JsonType type() default JsonType.ANY;
     String name() default "";
+    Class<?> genericClass() default Object.class;
 }

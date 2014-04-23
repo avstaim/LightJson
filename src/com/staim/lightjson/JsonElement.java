@@ -110,24 +110,31 @@ public class JsonElement {
     }
 
     /**
-     * @return the numberData
+     * @return the Number Data
      */
     public Number getNumberData() {
         return numberData;
     }
 
     /**
-     * @return the stringData
+     * @return the String Data
      */
     public String getStringData() {
         return stringData;
     }
 
     /**
-     * @return the booleanData
+     * @return the BooleanData
      */
     public Boolean getBooleanData() {
         return booleanData;
+    }
+
+    /**
+     * @return the Date Data
+     */
+    public Date getDateData() {
+        return dateData;
     }
 
     /**
@@ -175,6 +182,12 @@ public class JsonElement {
     public JsonElement get(String name) throws JsonException {
         verifyObject();
         return objectData.get(name);
+    }
+
+    public Iterator<JsonElement> getIterator() throws JsonException {
+        if (type == JsonType.OBJECT && objectData != null) return objectData.values().iterator();
+        else if (type == JsonType.ARRAY && arrayData != null) return arrayData.iterator();
+        else throw new JsonException("Iteration not supported for this JsonElement");
     }
 
     //// Adders ////
