@@ -2,6 +2,9 @@ package com.staim.lightjson.test;
 
 import com.staim.lightjson.annotations.JsonObject;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * Test Bean 2
  * Created by a_scherbinin on 21.04.14.
@@ -12,6 +15,11 @@ public class TestBean2 {
     private String string2;
 
     private int[] intArray;
+
+    private Map<String, String> stringMap;
+    private Map<String, Integer> numberMap;
+    private Map<String, Map<String, TestBean2>> bean2Map;
+    private Map<String, List<Map<String, String>>> complexMap;
 
     public TestBean2() {}
 
@@ -34,5 +42,33 @@ public class TestBean2 {
     }
     public void setIntArray(int[] intArray) {
         this.intArray = intArray;
+    }
+
+    public Map<String, String> getStringMap() {
+        return stringMap;
+    }
+    public void setStringMap(Map<String, String> stringMap) {
+        this.stringMap = stringMap;
+    }
+
+    public Map<String, Integer> getNumberMap() {
+        return numberMap;
+    }
+    public void setNumberMap(Map<String, Integer> numberMap) {
+        this.numberMap = numberMap;
+    }
+
+    public Map<String, Map<String, TestBean2>> getBean2Map() {
+        return bean2Map;
+    }
+    public void setBean2Map(Map<String, Map<String, TestBean2>> bean2Map) {
+        this.bean2Map = bean2Map;
+    }
+
+    public Map<String, List<Map<String, String>>> getComplexMap() {
+        return complexMap;
+    }
+    public void setComplexMap(Map<String, List<Map<String, String>>> complexMap) {
+        this.complexMap = complexMap;
     }
 }

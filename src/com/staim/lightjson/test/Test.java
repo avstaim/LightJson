@@ -5,7 +5,9 @@ import com.staim.lightjson.JsonException;
 import com.staim.lightjson.LightJson;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Test
@@ -25,6 +27,29 @@ public class Test {
         testBean2.setInteger2(25);
         testBean2.setString2("Whatszzupppp!!!");
         testBean2.setIntArray(intArray);
+
+        TestBean2 testBean21 = new TestBean2();
+        testBean21.setInteger2(50);
+        testBean21.setString2("aaa");
+        TestBean2 testBean22 = new TestBean2();
+        testBean22.setInteger2(51);
+        testBean22.setString2("bbb");
+        TestBean2 testBean23 = new TestBean2();
+        testBean23.setInteger2(52);
+        testBean23.setString2("ccc");
+
+        Map<String, String> stringMap = new HashMap<>();
+        stringMap.put("key1", "value1");
+        stringMap.put("key2", "value2");
+        testBean2.setStringMap(stringMap);
+
+/*        Map<String, Map<String, TestBean2>> bean2Map = new HashMap<>();
+        Map<String, TestBean2> bean2Maplevel2 = new HashMap<>();
+        bean2Maplevel2.put("testBean21", testBean21);
+        bean2Maplevel2.put("testBean22", testBean21);
+        bean2Maplevel2.put("testBean23", testBean21);
+        bean2Map.put("bean2Map", bean2Maplevel2);
+        testBean2.setBean2Map(bean2Map);*/
 
         testBean.setTestBean2(testBean2);
 
@@ -67,6 +92,9 @@ public class Test {
 
             for (int i : uTestBean.getTestBean2().getIntArray())
                 System.out.println("intArray: " + i);
+
+            for (Map.Entry<String, String> entry : uTestBean.getTestBean2().getStringMap().entrySet())
+                System.out.println("key: " + entry.getKey() +"; value: " + entry.getValue());
         } catch (JsonException e) {
             e.printStackTrace();
         }

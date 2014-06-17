@@ -73,6 +73,42 @@ public class LightJson<T> implements Json<T> {
         return (Class<?>) parameterizedType.getActualTypeArguments()[0];
     }
 
+    private static Class<?> getGenericClass(Class<?> aClass) {
+        ParameterizedType genericSuperclass;
+        if (aClass.getGenericSuperclass() instanceof ParameterizedType) genericSuperclass = (ParameterizedType) aClass.getGenericSuperclass();
+        else genericSuperclass = (ParameterizedType) aClass.getSuperclass().getGenericSuperclass();
+        return (Class<?>) genericSuperclass.getActualTypeArguments()[1];
+    }
+
+    private static Class<?> getSecondGenericClass(Field field) throws JsonException {
+        ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+        if (!String.class.equals(parameterizedType.getActualTypeArguments()[0])) throw new JsonException("Map fields must have string key types");
+        return (Class<?>) parameterizedType.getActualTypeArguments()[1];
+    }
+
+    private static Class<?> getSecondGenericClass(Class<?> aClass) throws JsonException {
+        ParameterizedType genericSuperclass;
+        if (aClass.getGenericSuperclass() instanceof ParameterizedType) genericSuperclass = (ParameterizedType) aClass.getGenericSuperclass();
+        else genericSuperclass = (ParameterizedType) aClass.getSuperclass().getGenericSuperclass();
+        if (!String.class.equals(genericSuperclass.getActualTypeArguments()[0])) throw new JsonException("Map fields must have string key types");
+        return (Class<?>) genericSuperclass.getActualTypeArguments()[1];
+    }
+
+    private static Object convertNumber(Number number, Class<?> numberType) throws JsonException {
+        if (number == null) return null;
+        if (Number.class.isAssignableFrom(numberType)) {
+            if (Long.class.isAssignableFrom(numberType)) return number.longValue();
+            else if (Integer.class.isAssignableFrom(numberType)) return number.intValue();
+            else if (Float.class.isAssignableFrom(numberType)) return number.floatValue();
+            else if (Double.class.isAssignableFrom(numberType)) return number.doubleValue();
+            else return number;
+        } else if (long.class.isAssignableFrom(numberType)) return number.longValue();
+        else if (int.class.isAssignableFrom(numberType)) return number.intValue();
+        else if (double.class.isAssignableFrom(numberType)) return number.doubleValue();
+        else if (float.class.isAssignableFrom(numberType)) return number.floatValue();
+        else throw new JsonException("Wrong parameter type");
+    }
+
     private static JsonElement processObject(Object object) throws JsonException {
         if (object == null) return new JsonElement(JsonType.NULL);
 
@@ -102,10 +138,15 @@ public class LightJson<T> implements Json<T> {
 
                     String name = field.getName();
 
-                    if (jsonName.isEmpty())  jsonName = name.toLowerCase();
+                    if (jsonName.isEmpty()) jsonName = name;
 
                     Class<?> fieldType = field.getType();
                     field.setAccessible(true);
+
+                    if (field.get(object) == null) {
+                        jsonElement.add(name, new JsonElement(JsonType.NULL));
+                        continue;
+                    }
 
                     switch (type) {
                         case ANY:
@@ -123,9 +164,8 @@ public class LightJson<T> implements Json<T> {
                             break;
                         case OBJECT:
                             if (Map.class.isAssignableFrom(fieldType)) {
-                                Map map = (Map)field.get(object);
-                                //TODO: verify map type
-                                jsonElement.add(name.substring(3).toLowerCase(), map);
+                                Map map = (Map) field.get(object);
+                                jsonElement.add(jsonName, processMap(map, field));
                             } else if (fieldType.isAnnotationPresent(JsonObject.class)) {
                                 Object subObject = field.get(object);
                                 JsonElement subElement = processObject(subObject);
@@ -190,7 +230,10 @@ public class LightJson<T> implements Json<T> {
                     // never go here
                     break;
                 case ARRAY:
-                    while (it.hasNext()) jsonElement.add(processCollection((Collection) it.next()));
+                    if (genericClass.isArray()) {
+                        Class subComponentType = genericClass.getComponentType();
+                        while (it.hasNext())  jsonElement.add(processArray(it.next(), subComponentType));
+                    } else while (it.hasNext()) jsonElement.add(processCollection((Collection) it.next()));
                     break;
                 case OBJECT:
                     while (it.hasNext()) jsonElement.add(processObject(it.next()));
@@ -256,6 +299,51 @@ public class LightJson<T> implements Json<T> {
         return jsonElement;
     }
 
+    @SuppressWarnings("RedundantCast")
+    private static JsonElement processMap(Map map, Field field) throws JsonException {
+        JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
+        if (map.isEmpty()) return jsonElement;
+        ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+        Class<?> keyClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+        Class<?> valueClass =  (Class<?>) parameterizedType.getActualTypeArguments()[1];
+        if (!keyClass.equals(String.class)) throw new JsonException("Map fields must have string key types");
+        JsonType type;
+        try { type = getTypeForClass(valueClass); }
+        catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Collection"); }
+
+        for (Map.Entry<String, Object> entry : ((Map<String, Object>)map).entrySet()) {
+            switch (type) {
+                case ANY:
+                    // never go here
+                    break;
+                case ARRAY:
+                    if (valueClass.isArray()) {
+                        Class subComponentType = valueClass.getComponentType();
+                        jsonElement.add(entry.getKey(), processArray(entry.getValue(), subComponentType));
+                    } else jsonElement.add(entry.getKey(), processCollection((Collection) entry.getValue()));
+                    break;
+                case OBJECT:
+                    jsonElement.add(entry.getKey(), processObject(entry.getValue()));
+                    break;
+                case STRING:
+                    jsonElement.add(entry.getKey(), (String) entry.getValue());
+                    break;
+                case NUMBER:
+                    jsonElement.add(entry.getKey(), (Number) entry.getValue());
+                    break;
+                case BOOLEAN:
+                    jsonElement.add(entry.getKey(), (Boolean) entry.getValue());
+                    break;
+                case DATE:
+                    jsonElement.add(entry.getKey(), (Date) entry.getValue());
+                    break;
+                case NULL:
+                    jsonElement.add(new JsonElement(JsonType.NULL));
+            }
+        }
+        return jsonElement;
+    }
+
     private static Object processJsonElement(JsonElement jsonElement, Class<?> aClass) throws JsonException {
         if (jsonElement == null) return null;
         if (jsonElement.getType() != JsonType.OBJECT) throw new JsonException("Json Element is not Object");
@@ -280,7 +368,7 @@ public class LightJson<T> implements Json<T> {
                 if (type != null) {
                     String name = field.getName();
 
-                    if (jsonName.isEmpty()) jsonName = name.toLowerCase();
+                    if (jsonName.isEmpty()) jsonName = name;
                     Class<?> fieldType = field.getType();
 
                     field.setAccessible(true);
@@ -288,6 +376,11 @@ public class LightJson<T> implements Json<T> {
                     if (type == JsonType.ANY) {
                         try { type = getTypeForClass(fieldType); }
                         catch (UnsupportedOperationException e) { continue; }
+                    }
+                    JsonElement jsonElementCurrent = jsonElement.get(jsonName);
+                    if (jsonElementCurrent.getType() == JsonType.NULL) {
+                        field.set(object, null);
+                        continue;
                     }
 
                     switch (type) {
@@ -307,9 +400,8 @@ public class LightJson<T> implements Json<T> {
                             break;
                         case OBJECT:
                             if (Map.class.isAssignableFrom(fieldType)) {
-                                //method.invoke(object, jsonElement.get(jsonName).getObjectData());
-                                //TODO: !!!
-                                //jsonElement.add(name.substring(3).toLowerCase(), map);
+                                Object subObject = processJsonAsMap(jsonElement.get(jsonName), fieldType, getSecondGenericClass(field));
+                                field.set(object, subObject);
                             } else if (fieldType.isAnnotationPresent(JsonObject.class)) {
                                 Object subObject = processJsonElement(jsonElement.get(jsonName), fieldType);
                                 field.set(object, subObject);
@@ -344,7 +436,7 @@ public class LightJson<T> implements Json<T> {
                             } else throw new JsonException("Wrong parameter type");
                             break;
                         case NULL:
-                            jsonElement.add(name, new JsonElement(JsonType.NULL));
+                            field.set(object, null);
                     }
                 }
             }
@@ -353,140 +445,76 @@ public class LightJson<T> implements Json<T> {
             throw new JsonException("Unable to create instance of class: " + aClass.getName());
         } catch (IllegalAccessException e) {
             throw new JsonException("Illegal Access problem: " + e.getMessage());
-        } catch (NullPointerException e) {
+        } /*catch (NullPointerException e) {
             throw new JsonException("JSON structure failure");
-        }
+        }*/
     }
 
     @SuppressWarnings("unchecked")
-    private static Object processJsonArrayAsCollection(JsonElement jsonElement, Class<?> parameterClass, Class<?> genericClass) throws JsonException {
+    private static Object processJsonArrayAsCollection(JsonElement jsonElement, Class<?> parameterClass, Class<?> genericClass) throws JsonException, IllegalAccessException, InstantiationException {
         if (jsonElement.getType() != JsonType.ARRAY) throw new JsonException("Json Element is not Array");
 
-        try {
-            if (!Collection.class.isAssignableFrom(parameterClass)) throw new JsonException("Incompatible types");
+        if (!Collection.class.isAssignableFrom(parameterClass)) throw new JsonException("Incompatible types");
 
-            Collection newCollection;
-            if (parameterClass.isInterface()) {
-                if (parameterClass.isAssignableFrom(ArrayList.class)) newCollection = new ArrayList();
-                else throw new JsonException("Unsupported collection type");
-            } else newCollection = (Collection)parameterClass.newInstance();
+        Collection newCollection;
+        if (parameterClass.isInterface()) {
+            if (parameterClass.isAssignableFrom(ArrayList.class)) newCollection = new ArrayList();
+            else throw new JsonException("Unsupported collection type");
+        } else newCollection = (Collection)parameterClass.newInstance();
 
+        Iterator<JsonElement> it = jsonElement.iterator();
+        while (it.hasNext()) newCollection.add(getSubObject(it.next(), genericClass));
 
-            JsonType type;
-            try { type = getTypeForClass(genericClass); }
-            catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Collection"); }
-
-            Iterator<JsonElement> it = jsonElement.getIterator();
-            switch (type) {
-                case ANY:
-                    // never go here
-                    break;
-                case ARRAY:
-                    throw new JsonException("Lists of Lists are not supported at the moment");
-                    //break;
-                case OBJECT:
-                    while (it.hasNext()) newCollection.add(processJsonElement(it.next(), genericClass));
-                    break;
-                case STRING:
-                    while (it.hasNext()) newCollection.add(it.next().getStringData());
-                    break;
-                case NUMBER:
-                    while (it.hasNext()) {
-                        if (Number.class.isAssignableFrom(genericClass)) {
-                            if (Long.class.isAssignableFrom(genericClass))
-                                newCollection.add(it.next().getNumberData().longValue());
-                            else if (Integer.class.isAssignableFrom(genericClass))
-                                newCollection.add(it.next().getNumberData().intValue());
-                            else if (Float.class.isAssignableFrom(genericClass))
-                                newCollection.add(it.next().getNumberData().floatValue());
-                            else if (Double.class.isAssignableFrom(genericClass))
-                                newCollection.add(it.next().getNumberData().doubleValue());
-                            else newCollection.add(it.next().getNumberData());
-                        } else if (long.class.isAssignableFrom(genericClass)) {
-                            newCollection.add(it.next().getNumberData().longValue());
-                        } else if (int.class.isAssignableFrom(genericClass)) {
-                            newCollection.add(it.next().getNumberData().intValue());
-                        } else if (double.class.isAssignableFrom(genericClass)) {
-                            newCollection.add(it.next().getNumberData().doubleValue());
-                        } else if (float.class.isAssignableFrom(genericClass)) {
-                            newCollection.add(it.next().getNumberData().floatValue());
-                        } else throw new JsonException("Wrong parameter type");
-                    }
-                    break;
-                case BOOLEAN:
-                    while (it.hasNext()) newCollection.add(it.next().getBooleanData());
-                    break;
-                case DATE:
-                    while (it.hasNext()) newCollection.add(it.next().getDateData());
-                    break;
-                case NULL:
-                    while (it.hasNext()) newCollection.add(null);
-            }
-            return newCollection;
-        } catch (InstantiationException e) {
-            throw new JsonException("Unable to create instance of class: " + parameterClass.getName());
-        } catch (IllegalAccessException e) {
-            throw new JsonException("Illegal Access problem: " + e.getMessage());
-        }
+        return newCollection;
     }
 
-    private static Object processJsonArray(JsonElement jsonElement, Class<?> componentType) throws JsonException {
+    private static Object processJsonArray(JsonElement jsonElement, Class<?> componentType) throws JsonException, IllegalAccessException, InstantiationException {
         if (jsonElement.getType() != JsonType.ARRAY) throw new JsonException("Json Element is not Array");
-
         Object array = Array.newInstance(componentType, jsonElement.size());
 
-
-        JsonType type;
-        try { type = getTypeForClass(componentType); }
-        catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Collection"); }
-
-        Iterator<JsonElement> it = jsonElement.getIterator();
+        Iterator<JsonElement> it = jsonElement.iterator();
         int i = 0;
+        while (it.hasNext()) Array.set(array, i++, getSubObject(it.next(), componentType));
+        return array;
+    }
+
+    private static Map processJsonAsMap(JsonElement jsonElement, Class<?> mapClass, Class<?> valueClass) throws JsonException, IllegalAccessException, InstantiationException {
+        Map map;
+        if (mapClass.isInterface()) {
+            if (mapClass.isAssignableFrom(HashMap.class)) map = new HashMap();
+            else throw new JsonException("Unsupported collection type");
+        } else map = (Map)mapClass.newInstance();
+
+        Map<String, JsonElement> jsonMap = (Map<String, JsonElement>)jsonElement.getData();
+        for (Map.Entry<String, JsonElement> entry : jsonMap.entrySet())
+            map.put(entry.getKey(), getSubObject(jsonElement.get(entry.getKey()), valueClass));
+
+        return map;
+    }
+
+    private static Object getSubObject(JsonElement jsonElement, Class<?> valueClass) throws JsonException, InstantiationException, IllegalAccessException {
+        JsonType type;
+        try { type = getTypeForClass(valueClass); }
+        catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Value Class"); }
+
         switch (type) {
             case ANY:
                 // never go here
                 break;
             case ARRAY:
-                throw new JsonException("Arrays of Arrays are not supported at the moment"); //TODO
+                throw new JsonException("Lists of Lists are not supported at the moment");
                 //break;
+
             case OBJECT:
-                while (it.hasNext()) Array.set(array, i++, processJsonElement(it.next(), componentType));
-                break;
-            case STRING:
-                while (it.hasNext()) Array.set(array, i++, it.next().getStringData());
-                break;
-            case NUMBER:
-                while (it.hasNext()) {
-                    if (Number.class.isAssignableFrom(componentType)) {
-                        if (Long.class.isAssignableFrom(componentType))
-                            Array.set(array, i++, it.next().getNumberData().longValue());
-                        else if (Integer.class.isAssignableFrom(componentType))
-                            Array.set(array, i++, it.next().getNumberData().intValue());
-                        else if (Float.class.isAssignableFrom(componentType))
-                            Array.set(array, i++, it.next().getNumberData().floatValue());
-                        else if (Double.class.isAssignableFrom(componentType))
-                            Array.set(array, i++, it.next().getNumberData().doubleValue());
-                        else Array.set(array, i++, it.next().getNumberData());
-                    } else if (long.class.isAssignableFrom(componentType)) {
-                        Array.set(array, i++, it.next().getNumberData().longValue());
-                    } else if (int.class.isAssignableFrom(componentType)) {
-                        Array.set(array, i++, it.next().getNumberData().intValue());
-                    } else if (double.class.isAssignableFrom(componentType)) {
-                        Array.set(array, i++, it.next().getNumberData().doubleValue());
-                    } else if (float.class.isAssignableFrom(componentType)) {
-                        Array.set(array, i++, it.next().getNumberData().floatValue());
-                    } else throw new JsonException("Wrong parameter type");
-                }
-                break;
-            case BOOLEAN:
-                while (it.hasNext()) Array.set(array, i++, it.next().getBooleanData());
-                break;
-            case DATE:
-                while (it.hasNext()) Array.set(array, i++, it.next().getDateData());
-                break;
-            case NULL:
-                while (it.hasNext()) Array.set(array, i++, null);
+                if (Map.class.isAssignableFrom(valueClass)) return processJsonAsMap(jsonElement, valueClass, getSecondGenericClass(valueClass));
+                else return processJsonElement(jsonElement, valueClass);
+
+            case STRING:  return jsonElement.getStringData();
+            case NUMBER:  return convertNumber(jsonElement.getNumberData(), valueClass);
+            case BOOLEAN: return jsonElement.getBooleanData();
+            case DATE:    return jsonElement.getDateData();
+            case NULL:    return null;
         }
-        return array;
+        return null;
     }
 }

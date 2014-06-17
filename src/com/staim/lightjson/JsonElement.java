@@ -184,7 +184,7 @@ public class JsonElement {
         return objectData.get(name);
     }
 
-    public Iterator<JsonElement> getIterator() throws JsonException {
+    public Iterator<JsonElement> iterator() throws JsonException {
         if (type == JsonType.OBJECT && objectData != null) return objectData.values().iterator();
         else if (type == JsonType.ARRAY && arrayData != null) return arrayData.iterator();
         else throw new JsonException("Iteration not supported for this JsonElement");
