@@ -3,6 +3,7 @@ package com.staim.lightjson;
 import com.staim.lightjson.annotations.JsonField;
 import com.staim.lightjson.annotations.JsonObject;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -52,7 +53,7 @@ public class LightJson<T> implements Json<T> {
         else if (String.class.isAssignableFrom(aClass)) type = JsonType.STRING;
         else if (boolean.class.isAssignableFrom(aClass) || Boolean.class.isAssignableFrom(aClass))
             type = JsonType.BOOLEAN;
-        else if (Collection.class.isAssignableFrom(aClass)) type = JsonType.ARRAY;
+        else if (aClass.isArray() || Collection.class.isAssignableFrom(aClass)) type = JsonType.ARRAY;
         else if (Date.class.isAssignableFrom(aClass)) type = JsonType.DATE;
         else if (Map.class.isAssignableFrom(aClass) || aClass.isAnnotationPresent(JsonObject.class)) type = JsonType.OBJECT;
         else {
@@ -111,10 +112,14 @@ public class LightJson<T> implements Json<T> {
                             // never go here
                             break;
                         case ARRAY:
-                            if (Collection.class.isAssignableFrom(fieldType)) {
+                            if (fieldType.isArray()) {
+                                Class arrayComponentType = fieldType.getComponentType();
+                                Object array = field.get(object);
+                                jsonElement.add(jsonName, processArray(array, arrayComponentType));
+                            } else if (Collection.class.isAssignableFrom(fieldType)) {
                                 Collection collection = (Collection)field.get(object);
                                 jsonElement.add(jsonName, processCollection(collection));
-                            } else throw new JsonException("Wrong return type");
+                            }  else throw new JsonException("Wrong return type");
                             break;
                         case OBJECT:
                             if (Map.class.isAssignableFrom(fieldType)) {
@@ -209,6 +214,48 @@ public class LightJson<T> implements Json<T> {
         return jsonElement;
     }
 
+    @SuppressWarnings("RedundantCast")
+    private static JsonElement processArray(Object array, Class<?> componentType) throws JsonException {
+        JsonElement jsonElement = new JsonElement(JsonType.ARRAY);
+        int length = Array.getLength(array);
+        if (length == 0) return jsonElement;
+        if (componentType != null) {
+            JsonType type;
+            try { type = getTypeForClass(componentType); }
+            catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Collection"); }
+
+            switch (type) {
+                case ANY:
+                    // never go here
+                    break;
+                case ARRAY:
+                    if (componentType.isArray()) {
+                        Class subComponentType = componentType.getComponentType();
+                        for (int i = 0; i < length; i++) jsonElement.add(processArray(Array.get(array, i), subComponentType));
+                    } else for (int i = 0; i < length; i++) jsonElement.add(processCollection((Collection) Array.get(array, i)));
+                    break;
+                case OBJECT:
+                    for (int i = 0; i < length; i++) jsonElement.add(processObject(Array.get(array, i)));
+                    break;
+                case STRING:
+                    for (int i = 0; i < length; i++) jsonElement.add((String) Array.get(array, i));
+                    break;
+                case NUMBER:
+                    for (int i = 0; i < length; i++) jsonElement.add((Number) Array.get(array, i));
+                    break;
+                case BOOLEAN:
+                    for (int i = 0; i < length; i++) jsonElement.add((Boolean) Array.get(array, i));
+                    break;
+                case DATE:
+                    for (int i = 0; i < length; i++) jsonElement.add((Date) Array.get(array, i));
+                    break;
+                case NULL:
+                    for (int i = 0; i < length; i++) jsonElement.add(new JsonElement(JsonType.NULL));
+            }
+        } else throw new JsonException("Unsupported Array");
+        return jsonElement;
+    }
+
     private static Object processJsonElement(JsonElement jsonElement, Class<?> aClass) throws JsonException {
         if (jsonElement == null) return null;
         if (jsonElement.getType() != JsonType.OBJECT) throw new JsonException("Json Element is not Object");
@@ -248,9 +295,13 @@ public class LightJson<T> implements Json<T> {
                             // never go here
                             break;
                         case ARRAY:
-                            if (Collection.class.isAssignableFrom(fieldType)) {
+                            if (fieldType.isArray()) {
+                                Class<?> arrayComponentType = fieldType.getComponentType();
+                                Object subObject = processJsonArray(jsonElement.get(jsonName), arrayComponentType);
+                                field.set(object, subObject);
+                            } else if (Collection.class.isAssignableFrom(fieldType)) {
                                 Class<?> genericClass = getGenericClass(field);
-                                Object subObject = processJsonArray(jsonElement.get(jsonName), fieldType, genericClass);
+                                Object subObject = processJsonArrayAsCollection(jsonElement.get(jsonName), fieldType, genericClass);
                                 field.set(object, subObject);
                             } else throw new JsonException("Wrong return type");
                             break;
@@ -302,13 +353,13 @@ public class LightJson<T> implements Json<T> {
             throw new JsonException("Unable to create instance of class: " + aClass.getName());
         } catch (IllegalAccessException e) {
             throw new JsonException("Illegal Access problem: " + e.getMessage());
-        }  /*catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             throw new JsonException("JSON structure failure");
-        }*/
+        }
     }
 
     @SuppressWarnings("unchecked")
-    private static Object processJsonArray(JsonElement jsonElement, Class<?> parameterClass, Class<?> genericClass) throws JsonException {
+    private static Object processJsonArrayAsCollection(JsonElement jsonElement, Class<?> parameterClass, Class<?> genericClass) throws JsonException {
         if (jsonElement.getType() != JsonType.ARRAY) throw new JsonException("Json Element is not Array");
 
         try {
@@ -331,7 +382,6 @@ public class LightJson<T> implements Json<T> {
                     // never go here
                     break;
                 case ARRAY:
-                    //while (it.hasNext()) jsonElement.add(processCollection((Collection) it.next()));
                     throw new JsonException("Lists of Lists are not supported at the moment");
                     //break;
                 case OBJECT:
@@ -372,24 +422,71 @@ public class LightJson<T> implements Json<T> {
                 case NULL:
                     while (it.hasNext()) newCollection.add(null);
             }
-
-
-
-
-            //Iterator <JsonElement> jsonElementIterator = jsonElement.getIterator();
-
-/*            while (jsonElementIterator.hasNext()) {
-                Object subObject;
-                if (Collection.class.isAssignableFrom(genericClass)) throw new JsonException("Lists of Lists are not supported at the moment");
-                else subObject = processJsonElement(jsonElementIterator.next(), genericClass);
-                newCollection.add(subObject);
-            }*/
-
             return newCollection;
         } catch (InstantiationException e) {
             throw new JsonException("Unable to create instance of class: " + parameterClass.getName());
         } catch (IllegalAccessException e) {
             throw new JsonException("Illegal Access problem: " + e.getMessage());
         }
+    }
+
+    private static Object processJsonArray(JsonElement jsonElement, Class<?> componentType) throws JsonException {
+        if (jsonElement.getType() != JsonType.ARRAY) throw new JsonException("Json Element is not Array");
+
+        Object array = Array.newInstance(componentType, jsonElement.size());
+
+
+        JsonType type;
+        try { type = getTypeForClass(componentType); }
+        catch (UnsupportedOperationException e) { throw new JsonException("Unsupported Collection"); }
+
+        Iterator<JsonElement> it = jsonElement.getIterator();
+        int i = 0;
+        switch (type) {
+            case ANY:
+                // never go here
+                break;
+            case ARRAY:
+                throw new JsonException("Arrays of Arrays are not supported at the moment"); //TODO
+                //break;
+            case OBJECT:
+                while (it.hasNext()) Array.set(array, i++, processJsonElement(it.next(), componentType));
+                break;
+            case STRING:
+                while (it.hasNext()) Array.set(array, i++, it.next().getStringData());
+                break;
+            case NUMBER:
+                while (it.hasNext()) {
+                    if (Number.class.isAssignableFrom(componentType)) {
+                        if (Long.class.isAssignableFrom(componentType))
+                            Array.set(array, i++, it.next().getNumberData().longValue());
+                        else if (Integer.class.isAssignableFrom(componentType))
+                            Array.set(array, i++, it.next().getNumberData().intValue());
+                        else if (Float.class.isAssignableFrom(componentType))
+                            Array.set(array, i++, it.next().getNumberData().floatValue());
+                        else if (Double.class.isAssignableFrom(componentType))
+                            Array.set(array, i++, it.next().getNumberData().doubleValue());
+                        else Array.set(array, i++, it.next().getNumberData());
+                    } else if (long.class.isAssignableFrom(componentType)) {
+                        Array.set(array, i++, it.next().getNumberData().longValue());
+                    } else if (int.class.isAssignableFrom(componentType)) {
+                        Array.set(array, i++, it.next().getNumberData().intValue());
+                    } else if (double.class.isAssignableFrom(componentType)) {
+                        Array.set(array, i++, it.next().getNumberData().doubleValue());
+                    } else if (float.class.isAssignableFrom(componentType)) {
+                        Array.set(array, i++, it.next().getNumberData().floatValue());
+                    } else throw new JsonException("Wrong parameter type");
+                }
+                break;
+            case BOOLEAN:
+                while (it.hasNext()) Array.set(array, i++, it.next().getBooleanData());
+                break;
+            case DATE:
+                while (it.hasNext()) Array.set(array, i++, it.next().getDateData());
+                break;
+            case NULL:
+                while (it.hasNext()) Array.set(array, i++, null);
+        }
+        return array;
     }
 }

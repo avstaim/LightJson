@@ -8,9 +8,10 @@ import com.staim.lightjson.annotations.JsonObject;
  */
 @JsonObject(AutomaticBinding = true)
 public class TestBean2 {
-
     private int integer2;
     private String string2;
+
+    private int[] intArray;
 
     public TestBean2() {}
 
@@ -26,5 +27,12 @@ public class TestBean2 {
     }
     public void setString2(String string2) {
         this.string2 = string2;
+    }
+
+    public int[] getIntArray() {
+        return intArray;
+    }
+    public void setIntArray(int[] intArray) {
+        this.intArray = intArray;
     }
 }

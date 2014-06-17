@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Test
+ *
  * Created by a_scherbinin on 17.04.14.
  */
 public class Test {
@@ -17,9 +19,12 @@ public class Test {
         testBean.setNumber(10);
         testBean.setString("Hello world");
 
+        int[] intArray = {2, 4, 6, 8, 10};
+
         TestBean2 testBean2 = new TestBean2();
         testBean2.setInteger2(25);
         testBean2.setString2("Whatszzupppp!!!");
+        testBean2.setIntArray(intArray);
 
         testBean.setTestBean2(testBean2);
 
@@ -58,7 +63,10 @@ public class Test {
             for (Integer i : uTestBean.getIntegerList())
                 System.out.println("list: " + i);
 
-            System.out.println("unmarshal bean2: " + uTestBean.getTestBean2().getInteger2() + " - " + uTestBean.getTestBean2().getString2());
+            System.out.println("unmarshal bean2: " + uTestBean.getTestBean2().getInteger2() + " - " + uTestBean.getTestBean2().getString2() + " - " + uTestBean.getTestBean2().getIntArray().length);
+
+            for (int i : uTestBean.getTestBean2().getIntArray())
+                System.out.println("intArray: " + i);
         } catch (JsonException e) {
             e.printStackTrace();
         }
