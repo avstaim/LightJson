@@ -3,9 +3,10 @@ package com.staim.lightjson.test;
 import com.staim.lightjson.annotations.JsonObject;
 
 /**
+ * Test Bean 2
  * Created by a_scherbinin on 21.04.14.
  */
-@JsonObject(AutomaticMethodBinding = true)
+@JsonObject(AutomaticBinding = true)
 public class TestBean2 {
 
     private int integer2;

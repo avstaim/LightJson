@@ -1,11 +1,10 @@
 package com.staim.lightjson;
 
-import com.staim.lightjson.annotations.JsonGetter;
+import com.staim.lightjson.annotations.JsonField;
 import com.staim.lightjson.annotations.JsonObject;
-import com.staim.lightjson.annotations.JsonSetter;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 /**
@@ -63,9 +62,14 @@ public class LightJson<T> implements Json<T> {
         return type;
     }
 
-    private static JsonType getTypeForMethod(Method method) throws UnsupportedOperationException {
-        Class<?> returnType = method.getReturnType();
+    private static JsonType getTypeForField(Field field) throws UnsupportedOperationException {
+        Class<?> returnType = field.getType();
         return getTypeForClass(returnType);
+    }
+
+    private static Class<?> getGenericClass(Field field) {
+        ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+        return (Class<?>) parameterizedType.getActualTypeArguments()[0];
     }
 
     private static JsonElement processObject(Object object) throws JsonException {
@@ -76,83 +80,77 @@ public class LightJson<T> implements Json<T> {
 
         JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
 
-        boolean isAutomaticMethodBinding = ((JsonObject)aClass.getAnnotation(JsonObject.class)).AutomaticMethodBinding();
+        boolean isAutomaticBinding = ((JsonObject)aClass.getAnnotation(JsonObject.class)).AutomaticBinding();
 
         try {
-            for (Method method : aClass.getMethods()) {
+            for (Field field : aClass.getDeclaredFields()) {
                 JsonType type = null;
                 String jsonName = "";
-                if (method.isAnnotationPresent(JsonGetter.class)) {
-                    JsonGetter annotation = method.getAnnotation(JsonGetter.class);
+                if (field.isAnnotationPresent(JsonField.class)) {
+                    JsonField annotation = field.getAnnotation(JsonField.class);
                     type = annotation.type();
                     jsonName = annotation.name();
-                } else if (isAutomaticMethodBinding) {
+                } else if (isAutomaticBinding) {
                     type = JsonType.ANY;
                 }
                 if (type != null) {
                     if (type == JsonType.ANY) {
-                        try { type = getTypeForMethod(method); }
+                        try { type = getTypeForField(field); }
                         catch (UnsupportedOperationException e) { continue; }
                     }
 
-                    String name = method.getName();
-                    if (name.equals("getClass")) continue;
+                    String name = field.getName();
 
-                    if (jsonName.isEmpty()) {
-                        if (type != JsonType.NULL && !name.startsWith(type == JsonType.BOOLEAN ? "is" : "get")) {
-                            if (!isAutomaticMethodBinding) throw new JsonException("Naming convention violated: " + name);
-                            else continue;
-                        }
-                        jsonName = name.substring(type == JsonType.BOOLEAN ? 2 : 3).toLowerCase();
-                    }
+                    if (jsonName.isEmpty())  jsonName = name.toLowerCase();
 
-                    Class<?> returnType = method.getReturnType();
+                    Class<?> fieldType = field.getType();
+                    field.setAccessible(true);
 
                     switch (type) {
                         case ANY:
                             // never go here
                             break;
                         case ARRAY:
-                            if (Collection.class.isAssignableFrom(returnType)) {
-                                Collection collection = (Collection)method.invoke(object);
+                            if (Collection.class.isAssignableFrom(fieldType)) {
+                                Collection collection = (Collection)field.get(object);
                                 jsonElement.add(jsonName, processCollection(collection));
                             } else throw new JsonException("Wrong return type");
                             break;
                         case OBJECT:
-                            if (Map.class.isAssignableFrom(returnType)) {
-                                Map map = (Map)method.invoke(object);
+                            if (Map.class.isAssignableFrom(fieldType)) {
+                                Map map = (Map)field.get(object);
                                 //TODO: verify map type
                                 jsonElement.add(name.substring(3).toLowerCase(), map);
-                            } else if (returnType.isAnnotationPresent(JsonObject.class)) {
-                                Object subObject = method.invoke(object);
+                            } else if (fieldType.isAnnotationPresent(JsonObject.class)) {
+                                Object subObject = field.get(object);
                                 JsonElement subElement = processObject(subObject);
                                 jsonElement.add(jsonName, subElement);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case STRING:
                             String string;
-                            if (String.class.isAssignableFrom(returnType)) {
-                                string = (String)method.invoke(object);
-                            } else if (Object.class.isAssignableFrom(returnType)) {
-                                string = method.invoke(object).toString();
+                            if (String.class.isAssignableFrom(fieldType)) {
+                                string = (String)field.get(object);
+                            } else if (Object.class.isAssignableFrom(fieldType)) {
+                                string = field.get(object).toString();
                             } else throw new JsonException("Wrong return type");
                             jsonElement.add(jsonName, string);
                             break;
                         case NUMBER:
-                            if (Number.class.isAssignableFrom(returnType) || long.class.isAssignableFrom(returnType) || int.class.isAssignableFrom(returnType) || double.class.isAssignableFrom(returnType) || float.class.isAssignableFrom(returnType)) {
-                                Number number = (Number)method.invoke(object);
+                            if (Number.class.isAssignableFrom(fieldType) || long.class.isAssignableFrom(fieldType) || int.class.isAssignableFrom(fieldType) || double.class.isAssignableFrom(fieldType) || float.class.isAssignableFrom(fieldType)) {
+                                Number number = (Number)field.get(object);
                                 jsonElement.add(jsonName, number);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case BOOLEAN:
-                            if (Boolean.class.isAssignableFrom(returnType) || boolean.class.isAssignableFrom(returnType)) {
-                                Boolean bool = (Boolean)method.invoke(object);
+                            if (Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType)) {
+                                Boolean bool = (Boolean)field.get(object);
                                 jsonElement.add(jsonName, bool);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case DATE:
-                            if (Date.class.isAssignableFrom(returnType)) {
-                                Date date = (Date)method.invoke(object);
+                            if (Date.class.isAssignableFrom(fieldType)) {
+                                Date date = (Date)field.get(object);
                                 jsonElement.add(jsonName, date);
                             } else throw new JsonException("Wrong return type");
                             break;
@@ -162,8 +160,8 @@ public class LightJson<T> implements Json<T> {
                 }
             }
             return jsonElement;
-        } catch (InvocationTargetException |IllegalAccessException e) {
-            throw new JsonException("Getter Invocation failed");
+        } catch (IllegalAccessException e) {
+            throw new JsonException("Getting field value failed");
         }
     }
 
@@ -216,40 +214,32 @@ public class LightJson<T> implements Json<T> {
         if (jsonElement.getType() != JsonType.OBJECT) throw new JsonException("Json Element is not Object");
         if (!aClass.isAnnotationPresent(JsonObject.class)) throw new JsonException("Class is not annotated as JsonObject");
 
-        boolean isAutomaticMethodBinding = aClass.getAnnotation(JsonObject.class).AutomaticMethodBinding();
+        boolean isAutomaticBinding = aClass.getAnnotation(JsonObject.class).AutomaticBinding();
 
         try {
             Object object = aClass.newInstance();
 
-            for (Method method : aClass.getMethods()) {
+            for (Field field : aClass.getDeclaredFields()) {
                 JsonType type;
                 String jsonName = "";
-                if (method.isAnnotationPresent(JsonSetter.class)) {
-                    JsonSetter annotation = method.getAnnotation(JsonSetter.class);
+                if (field.isAnnotationPresent(JsonField.class)) {
+                    JsonField annotation = field.getAnnotation(JsonField.class);
                     type = annotation.type();
                     jsonName = annotation.name();
-                } else if (isAutomaticMethodBinding) {
+                } else if (isAutomaticBinding) {
                     type = JsonType.ANY;
                 } else continue;
 
                 if (type != null) {
-                    String name = method.getName();
-                    //if (name.equals("getClass")) continue;
+                    String name = field.getName();
 
-                    if (jsonName.isEmpty()) {
-                        if (type != JsonType.NULL && !name.startsWith("set")) {
-                            if (!isAutomaticMethodBinding) throw new JsonException("Naming convention violated: " + name);
-                            else continue;
-                        }
-                        jsonName = name.substring(3).toLowerCase();
-                    }
+                    if (jsonName.isEmpty()) jsonName = name.toLowerCase();
+                    Class<?> fieldType = field.getType();
 
-                    Class<?>[] parameterTypes = method.getParameterTypes();
-                    if (parameterTypes.length != 1) throw new JsonException("Wrong setter parameter count: " + parameterTypes.length);
-                    Class<?> parameterClass = parameterTypes[0];
+                    field.setAccessible(true);
 
                     if (type == JsonType.ANY) {
-                        try { type = getTypeForClass(parameterClass); }
+                        try { type = getTypeForClass(fieldType); }
                         catch (UnsupportedOperationException e) { continue; }
                     }
 
@@ -258,51 +248,48 @@ public class LightJson<T> implements Json<T> {
                             // never go here
                             break;
                         case ARRAY:
-                            if (Collection.class.isAssignableFrom(parameterClass)) {
-                                if (!method.isAnnotationPresent(JsonSetter.class)) throw new JsonException("Array setters must always be annotated");
-                                Class<?> genericClass = method.getAnnotation(JsonSetter.class).genericClass();
-                                if (genericClass.equals(Object.class)) throw new JsonException("Array fields require genericClass parameter be annotated");
-                                Object subObject = processJsonArray(jsonElement.get(jsonName), parameterClass, genericClass);
-                                method.invoke(object, subObject);
-
+                            if (Collection.class.isAssignableFrom(fieldType)) {
+                                Class<?> genericClass = getGenericClass(field);
+                                Object subObject = processJsonArray(jsonElement.get(jsonName), fieldType, genericClass);
+                                field.set(object, subObject);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case OBJECT:
-                            if (Map.class.isAssignableFrom(parameterClass)) {
+                            if (Map.class.isAssignableFrom(fieldType)) {
                                 //method.invoke(object, jsonElement.get(jsonName).getObjectData());
                                 //TODO: !!!
                                 //jsonElement.add(name.substring(3).toLowerCase(), map);
-                            } else if (parameterClass.isAnnotationPresent(JsonObject.class)) {
-                                Object subObject = processJsonElement(jsonElement.get(jsonName), parameterClass);
-                                method.invoke(object, subObject);
+                            } else if (fieldType.isAnnotationPresent(JsonObject.class)) {
+                                Object subObject = processJsonElement(jsonElement.get(jsonName), fieldType);
+                                field.set(object, subObject);
                             } else throw new JsonException("Wrong return type");
                             break;
                         case STRING:
-                            if (String.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getStringData());
+                            if (String.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getStringData());
                             } else throw new JsonException("Wrong parameter type");
                             break;
                         case NUMBER:
-                            if (Number.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getNumberData());
-                            } else if (long.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getNumberData().longValue());
-                            } else if (int.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getNumberData().intValue());
-                            } else if (double.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getNumberData().doubleValue());
-                            } else if (float.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getNumberData().floatValue());
+                            if (Number.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getNumberData());
+                            } else if (long.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getNumberData().longValue());
+                            } else if (int.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getNumberData().intValue());
+                            } else if (double.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getNumberData().doubleValue());
+                            } else if (float.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getNumberData().floatValue());
                             } else throw new JsonException("Wrong parameter type");
                             break;
                         case BOOLEAN:
-                            if (Boolean.class.isAssignableFrom(parameterClass) || boolean.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getBooleanData());
+                            if (Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getBooleanData());
                             } else throw new JsonException("Wrong parameter type");
                             break;
                         case DATE:
-                            if (Date.class.isAssignableFrom(parameterClass)) {
-                                method.invoke(object, jsonElement.get(jsonName).getDateData());
+                            if (Date.class.isAssignableFrom(fieldType)) {
+                                field.set(object, jsonElement.get(jsonName).getDateData());
                             } else throw new JsonException("Wrong parameter type");
                             break;
                         case NULL:
@@ -310,15 +297,12 @@ public class LightJson<T> implements Json<T> {
                     }
                 }
             }
-
             return object;
         } catch (InstantiationException e) {
             throw new JsonException("Unable to create instance of class: " + aClass.getName());
         } catch (IllegalAccessException e) {
             throw new JsonException("Illegal Access problem: " + e.getMessage());
-        } catch (InvocationTargetException e) {
-            throw new JsonException("Setter Invocation failed");
-        } /*catch (NullPointerException e) {
+        }  /*catch (NullPointerException e) {
             throw new JsonException("JSON structure failure");
         }*/
     }

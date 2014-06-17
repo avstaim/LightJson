@@ -8,15 +8,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Mark Java Bean method as setter for Json Object
+ * Mark Java Bean method as getter for Json Object
  *
  * Created by a_scherbinin on 17.04.14.
  */
 
-@Target({ElementType.METHOD})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface JsonSetter {
+public @interface JsonField {
     JsonType type() default JsonType.ANY;
     String name() default "";
-    Class<?> genericClass() default Object.class;
 }

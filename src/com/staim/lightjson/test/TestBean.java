@@ -1,15 +1,15 @@
 package com.staim.lightjson.test;
 
 import com.staim.lightjson.annotations.JsonObject;
-import com.staim.lightjson.annotations.JsonSetter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Test Bean
+ *
  * Created by a_scherbinin on 17.04.14.
  */
-@JsonObject(AutomaticMethodBinding = true)
+@JsonObject(AutomaticBinding = true)
 public class TestBean {
     private int number;
     private String string;
@@ -22,9 +22,7 @@ public class TestBean {
     public int getNumber() {
         return number;
     }
-    public Integer getNumberAsInteger() {
-        return number;
-    }
+
     public void setNumber(int number) {
         this.number = number;
     }
@@ -46,7 +44,6 @@ public class TestBean {
     public List<Integer> getIntegerList() {
         return integerList;
     }
-    @JsonSetter(genericClass = Integer.class)
     public void setIntegerList(List<Integer> integerList) {
         this.integerList = integerList;
     }
@@ -58,14 +55,4 @@ public class TestBean {
         this.testBean2 = testBean2;
     }
 
-    public List<TestBean2> testBean2List() {
-        List<TestBean2> testBean2s = new ArrayList<>();
-        for (int i = 0; i < 6; i++) {
-            TestBean2 cTestBean2 = new TestBean2();
-            cTestBean2.setInteger2(i);
-            cTestBean2.setString2("test" + i);
-            testBean2s.add(cTestBean2);
-        }
-        return testBean2s;
-    }
 }

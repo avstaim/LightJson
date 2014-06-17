@@ -14,5 +14,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface JsonObject {
-    boolean AutomaticMethodBinding() default false;
+    boolean AutomaticBinding() default false;
 }
