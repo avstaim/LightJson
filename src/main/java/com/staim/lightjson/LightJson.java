@@ -73,6 +73,7 @@ public class LightJson<T> implements Json<T> {
         return (Class<?>) parameterizedType.getActualTypeArguments()[0];
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     private static Class<?> getGenericClass(Class<?> aClass) {
         ParameterizedType genericSuperclass;
         if (aClass.getGenericSuperclass() instanceof ParameterizedType) genericSuperclass = (ParameterizedType) aClass.getGenericSuperclass();
