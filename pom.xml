@@ -6,8 +6,32 @@
 
     <groupId>com.staim</groupId>
     <artifactId>LightJson</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.1</version>
     <packaging>jar</packaging>
+
+    <description>Simple lightweight Java library for working with JSON</description>
+    <url>https://github.com/avstaim/LightJson/wiki</url>
+
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License, Version 3.0</name>
+            <url>https://www.gnu.org/licenses/lgpl.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/avstaim/LightJson</url>
+        <connection>https://github.com/avstaim/LightJson.git</connection>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>avstaim</id>
+            <name>Shcherbinin Alexey</name>
+            <email>avstaim@gmail.com</email>
+        </developer>
+    </developers>
 
     <dependencies>
         <dependency>
