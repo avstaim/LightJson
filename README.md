@@ -47,7 +47,7 @@ System.out.println("marshal result: " + testJson);
 ```
 
 You will get :
-> marshal result: {"field":<field value>}
+> marshal result: {"field":"field value"}
 
 3. Unmarshal from JSON
 
