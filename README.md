@@ -42,7 +42,7 @@ _**NOTE:** Unmarshalling Collections of Collections, Maps of Maps, Collections o
 Bean bean = new Bean();
 bean.setField(field);
 Json<Bean> jsonBean = new LightJson<>(bean);
-String testJson = jsonTestBean.marshal();
+String testJson = jsonBean.marshal();
 System.out.println("marshal result: " + testJson);
 ```
 
