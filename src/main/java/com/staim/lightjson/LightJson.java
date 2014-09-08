@@ -358,7 +358,18 @@ public class LightJson<T> implements Json<T> {
                                 break;
                             case NUMBER:
                                 if (Number.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getNumberData());
+                                    Number numberData = jsonElement.get(jsonName).getNumberData();
+                                    if (numberData == null) field.set(object, null);
+                                    else if (Long.class.isAssignableFrom(fieldType)) {
+                                        field.set(object, jsonElement.get(jsonName).getNumberData().longValue());
+                                    } else if (Integer.class.isAssignableFrom(fieldType)) {
+                                        field.set(object, jsonElement.get(jsonName).getNumberData().intValue());
+                                    } else if (Double.class.isAssignableFrom(fieldType)) {
+                                        field.set(object, jsonElement.get(jsonName).getNumberData().doubleValue());
+                                    } else if (Float.class.isAssignableFrom(fieldType)) {
+                                        field.set(object, jsonElement.get(jsonName).getNumberData().floatValue());
+                                    } else throw new JsonException("Wrong number format");
+                                    //field.set(object, jsonElement.get(jsonName).getNumberData());
                                 } else if (long.class.isAssignableFrom(fieldType)) {
                                     field.set(object, jsonElement.get(jsonName).getNumberData().longValue());
                                 } else if (int.class.isAssignableFrom(fieldType)) {
