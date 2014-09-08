@@ -406,7 +406,10 @@ public class JsonElement {
             return;
         }
         this.type = JsonType.NUMBER;
-        this.numberData = Long.parseLong(json);
+        if (json.contains(".") || json.contains(","))
+            this.numberData = Double.parseDouble(json);
+        else
+            this.numberData = Long.parseLong(json);
     }
 
     //////////////////////////// SERIALIZATION /////////////////////////////////////////////////////////////////////////

@@ -17,6 +17,8 @@ public class TestBean {
     private List<Integer> integerList;
     private TestBean2 testBean2;
 
+    private double doubleValue;
+
     public TestBean() {}
 
     public int getNumber() {
@@ -55,4 +57,10 @@ public class TestBean {
         this.testBean2 = testBean2;
     }
 
+    public double getDoubleValue() {
+        return doubleValue;
+    }
+    public void setDoubleValue(double doubleValue) {
+        this.doubleValue = doubleValue;
+    }
 }

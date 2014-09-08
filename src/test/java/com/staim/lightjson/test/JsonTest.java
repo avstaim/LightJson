@@ -24,6 +24,7 @@ public class JsonTest {
         testBean.setBool(true);
         testBean.setNumber(10);
         testBean.setString("Hello world");
+        testBean.setDoubleValue(2);
 
         int[] intArray = {2, 4, 6, 8, 10};
 
@@ -69,7 +70,7 @@ public class JsonTest {
         try {
             Json<TestBean> jsonTestBean = new LightJson<>(testJson);
             TestBean uTestBean = jsonTestBean.unmarshal(TestBean.class);
-            System.out.println("unmarshal result: " + uTestBean.getString() + " - " + uTestBean.getNumber() + " - " + uTestBean.isBool() + " - " + uTestBean.getIntegerList().size());
+            System.out.println("unmarshal result: " + uTestBean.getString() + " - " + uTestBean.getNumber() + " - " + uTestBean.isBool() + " - " + uTestBean.getIntegerList().size() + " - " + uTestBean.getDoubleValue());
 
             for (Integer i : uTestBean.getIntegerList())
                 System.out.println("list: " + i);
