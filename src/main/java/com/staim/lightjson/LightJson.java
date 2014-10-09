@@ -3,9 +3,7 @@ package com.staim.lightjson;
 import com.staim.lightjson.annotations.JsonField;
 import com.staim.lightjson.annotations.JsonObject;
 
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.*;
 import java.util.*;
 
 /**
@@ -295,8 +293,9 @@ public class LightJson<T> implements Json<T> {
 
             boolean isAutomaticBinding = aClass.getAnnotation(JsonObject.class).AutomaticBinding();
 
-            try {
-                Object object = aClass.newInstance();
+            try {                Constructor<?> constructor = aClass.getDeclaredConstructor();
+                constructor.setAccessible(true);
+                Object object = constructor.newInstance();
 
                 for (Field field : aClass.getDeclaredFields()) {
                     JsonType type;
@@ -402,6 +401,10 @@ public class LightJson<T> implements Json<T> {
                 throw new JsonException("Illegal Access problem: " + e.getMessage());
             } catch (NullPointerException e) {
                 throw new JsonException("JSON structure failure");
+            } catch (NoSuchMethodException e) {
+                throw new JsonException("No such method problem: " + e.getMessage());
+            } catch (InvocationTargetException e) {
+                throw new JsonException("Invocation Target Problem: " + e.getMessage());
             }
         }
 
