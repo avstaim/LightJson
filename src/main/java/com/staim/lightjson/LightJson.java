@@ -288,12 +288,15 @@ public class LightJson<T> implements Json<T> {
     private static class Unmarshaller {
         private static Object unmarshal(JsonElement jsonElement, Class<?> aClass) throws JsonException {
             if (jsonElement == null) return null;
-            if (jsonElement.getType() != JsonType.OBJECT) throw new JsonException("Json Element is not Object");
-            if (!aClass.isAnnotationPresent(JsonObject.class)) throw new JsonException("Class is not annotated as JsonObject");
+            if (jsonElement.getType() != JsonType.OBJECT)
+                throw new JsonException("Json Element is not Object");
+            if (!aClass.isAnnotationPresent(JsonObject.class))
+                throw new JsonException("Class is not annotated as JsonObject");
 
             boolean isAutomaticBinding = aClass.getAnnotation(JsonObject.class).AutomaticBinding();
 
-            try {                Constructor<?> constructor = aClass.getDeclaredConstructor();
+            try {
+                Constructor<?> constructor = aClass.getDeclaredConstructor();
                 constructor.setAccessible(true);
                 Object object = constructor.newInstance();
 
@@ -321,7 +324,7 @@ public class LightJson<T> implements Json<T> {
                             catch (UnsupportedOperationException e) { continue; }
                         }
                         JsonElement jsonElementCurrent = jsonElement.get(jsonName);
-                        if (jsonElementCurrent.getType() == JsonType.NULL) {
+                        if (jsonElementCurrent == null || jsonElementCurrent.getType() == JsonType.NULL) {
                             field.set(object, null);
                             continue;
                         }
@@ -339,7 +342,7 @@ public class LightJson<T> implements Json<T> {
                                     Class<?> genericClass = Util.getGenericClass(field);
                                     Object subObject = processJsonArrayAsCollection(jsonElement.get(jsonName), fieldType, genericClass);
                                     field.set(object, subObject);
-                                } else throw new JsonException("Wrong return type");
+                                } else throw new JsonException("Wrong return type in field: " + jsonName);
                                 break;
                             case OBJECT:
                                 if (Map.class.isAssignableFrom(fieldType)) {
@@ -348,46 +351,63 @@ public class LightJson<T> implements Json<T> {
                                 } else if (fieldType.isAnnotationPresent(JsonObject.class)) {
                                     Object subObject = unmarshal(jsonElement.get(jsonName), fieldType);
                                     field.set(object, subObject);
-                                } else throw new JsonException("Wrong return type");
+                                } else throw new JsonException("Wrong return type in field: " + jsonName);
                                 break;
                             case STRING:
                                 if (String.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getStringData());
-                                } else throw new JsonException("Wrong parameter type");
+                                    String stringData = jsonElement.get(jsonName).getStringData();
+                                    if (stringData != null) field.set(object, stringData);
+                                    else {
+                                        Number numberData = jsonElement.get(jsonName).getNumberData();
+                                        if (numberData != null) field.set(object, numberData.toString());
+                                    }
+                                } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                                 break;
                             case NUMBER:
+                                Number numberData = jsonElement.get(jsonName).getNumberData();
+                                if (numberData == null) {
+                                    String stringData = jsonElement.get(jsonName).getStringData();
+                                    try {
+                                        if (stringData != null && !stringData.isEmpty()) {
+                                            if (stringData.contains(".") || stringData.contains(","))
+                                                numberData = Double.parseDouble(stringData);
+                                            else
+                                                numberData = Long.parseLong(stringData);
+                                        }
+                                    } catch (NumberFormatException ignored) {}
+                                }
                                 if (Number.class.isAssignableFrom(fieldType)) {
-                                    Number numberData = jsonElement.get(jsonName).getNumberData();
                                     if (numberData == null) field.set(object, null);
                                     else if (Long.class.isAssignableFrom(fieldType)) {
-                                        field.set(object, jsonElement.get(jsonName).getNumberData().longValue());
+                                        field.set(object, numberData.longValue());
                                     } else if (Integer.class.isAssignableFrom(fieldType)) {
-                                        field.set(object, jsonElement.get(jsonName).getNumberData().intValue());
+                                        field.set(object, numberData.intValue());
                                     } else if (Double.class.isAssignableFrom(fieldType)) {
-                                        field.set(object, jsonElement.get(jsonName).getNumberData().doubleValue());
+                                        field.set(object, numberData.doubleValue());
                                     } else if (Float.class.isAssignableFrom(fieldType)) {
-                                        field.set(object, jsonElement.get(jsonName).getNumberData().floatValue());
-                                    } else throw new JsonException("Wrong number format");
-                                    //field.set(object, jsonElement.get(jsonName).getNumberData());
+                                        field.set(object, numberData.floatValue());
+                                    } else throw new JsonException("Wrong number format in field: " + jsonName);
+                                } else if (numberData == null) {
+                                    throw new JsonException("No number data in field: " + jsonName);
                                 } else if (long.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getNumberData().longValue());
+                                    field.set(object, numberData.longValue());
                                 } else if (int.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getNumberData().intValue());
+                                    field.set(object, numberData.intValue());
                                 } else if (double.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getNumberData().doubleValue());
+                                    field.set(object, numberData.doubleValue());
                                 } else if (float.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getNumberData().floatValue());
-                                } else throw new JsonException("Wrong parameter type");
+                                    field.set(object, numberData.floatValue());
+                                } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                                 break;
                             case BOOLEAN:
                                 if (Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType)) {
                                     field.set(object, jsonElement.get(jsonName).getBooleanData());
-                                } else throw new JsonException("Wrong parameter type");
+                                } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                                 break;
                             case DATE:
                                 if (Date.class.isAssignableFrom(fieldType)) {
                                     field.set(object, jsonElement.get(jsonName).getDateData());
-                                } else throw new JsonException("Wrong parameter type");
+                                } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                                 break;
                             case NULL:
                                 field.set(object, null);
@@ -400,6 +420,7 @@ public class LightJson<T> implements Json<T> {
             } catch (IllegalAccessException e) {
                 throw new JsonException("Illegal Access problem: " + e.getMessage());
             } catch (NullPointerException e) {
+                e.printStackTrace();
                 throw new JsonException("JSON structure failure");
             } catch (NoSuchMethodException e) {
                 throw new JsonException("No such method problem: " + e.getMessage());
