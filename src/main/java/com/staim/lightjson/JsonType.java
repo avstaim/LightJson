@@ -11,5 +11,6 @@ public enum JsonType {
     BOOLEAN,
     DATE, // serialization only
     NULL,
-    ANY  // serialization only
+    ANY,  // serialization only
+    RAW // parse only: return as JsonElement for special cases, which cannot be parsed to Java classes
 }

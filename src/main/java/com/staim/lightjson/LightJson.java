@@ -202,7 +202,12 @@ public class LightJson<T> implements Json<T> {
                                 } else throw new JsonException("Wrong return type");
                                 break;
                             case NULL:
-                                jsonElement.add(name, new JsonElement(JsonType.NULL));
+                                jsonElement.add(jsonName, new JsonElement(JsonType.NULL));
+                                break;
+                            case RAW:
+                                if (JsonElement.class.isAssignableFrom(fieldType)) {
+                                    jsonElement.add(jsonName, field.get(object));
+                                } else throw new JsonException("Raw fields must be of JsonElement type");
                         }
                     }
                 }
@@ -401,7 +406,15 @@ public class LightJson<T> implements Json<T> {
                                 break;
                             case BOOLEAN:
                                 if (Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType)) {
-                                    field.set(object, jsonElement.get(jsonName).getBooleanData());
+                                    Boolean bool = jsonElement.get(jsonName).getBooleanData();
+                                    if (bool == null) {
+                                        String stringData = jsonElement.get(jsonName).getStringData();
+                                        if (stringData != null) {
+                                            if (stringData.equalsIgnoreCase("true") || stringData.equalsIgnoreCase("yes")) bool = true;
+                                            else if (stringData.equalsIgnoreCase("false") || stringData.equalsIgnoreCase("no")) bool = false;
+                                        }
+                                    }
+                                    field.set(object, bool);
                                 } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                                 break;
                             case DATE:
@@ -411,6 +424,12 @@ public class LightJson<T> implements Json<T> {
                                 break;
                             case NULL:
                                 field.set(object, null);
+                                break;
+                            case RAW:
+                                if (JsonElement.class.isAssignableFrom(fieldType)) {
+                                    field.set(object, jsonElement.get(jsonName));
+                                } else throw new JsonException("Raw field: " + jsonName + " must be a subtype of JsonElement");
+
                         }
                     }
                 }
