@@ -5,7 +5,14 @@ package com.staim.lightjson;
  * Created by a_scherbinin on 18.04.14.
  */
 public interface Json<T> {
+    @Deprecated
     public T unmarshal(Class<T> unmarshalClass) throws JsonException;
+    @Deprecated
     public String marshal();
+    @Deprecated
     public JsonElement getElement();
+
+    public JsonBuilder builder();
+    public JsonMarshaller marshaller(T t);
+    public JsonUnmarshaller unmarshaller(String jsonString);
 }

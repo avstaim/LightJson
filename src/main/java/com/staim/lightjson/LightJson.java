@@ -1,10 +1,10 @@
 package com.staim.lightjson;
 
-import com.staim.lightjson.annotations.JsonField;
-import com.staim.lightjson.annotations.JsonObject;
-
-import java.lang.reflect.*;
-import java.util.*;
+import com.staim.lightjson.implementations.BuilderImpl;
+import com.staim.lightjson.implementations.MarshallerImpl;
+import com.staim.lightjson.implementations.UnmarshallerImpl;
+import com.staim.lightjson.implementations.parsers.ParserScalable;
+import com.staim.lightjson.implementations.parsers.ParserSimple;
 
 /**
  * LightJson initial implementation of Json interface
@@ -12,16 +12,81 @@ import java.util.*;
  */
 @SuppressWarnings("unchecked")
 public class LightJson<T> implements Json<T> {
-    private JsonElement element;
+    @Deprecated private JsonElement element;
+    private static JsonBuilder builder;
 
+    static Class<? extends JsonParser> parserClass = ParserScalable.class;
+
+    private JsonParser parser;
+
+    {{
+        try { parser = parserClass.newInstance(); }
+        catch (Exception e) { throw new RuntimeException(e); }
+    }}
+
+    public enum ParserType {
+        Simple, // Good for small simple JSONs, bad for large and complex ones
+        Scalable // Worse a bit for simple JSONs, but in long and complex up to 10x faster (default)
+    }
+
+    public static void setParserType(ParserType type) {
+        switch (type) {
+            case Simple:
+                parserClass = ParserSimple.class; break;
+            case Scalable:
+                parserClass = ParserScalable.class; break;
+        }
+    }
+
+    @Deprecated
     public LightJson(T t) throws JsonException {
-        element = Marshaller.marshal(t);
+        element = OldMarshaller.marshal(t);
     }
 
+    @Deprecated
     public LightJson(String jsonString) throws JsonException {
-        element = new JsonElement(jsonString);
+        element = parser.parse(jsonString);
     }
 
+    private LightJson() {}
+
+    public static <T> Json<T> json() { return new LightJson<>(); }
+
+    @Override
+    @Deprecated
+    public T unmarshal(Class<T> unmarshalClass) throws JsonException {
+        return (new UnmarshallerImpl(element).unmarshal(unmarshalClass));
+    }
+
+    @Override
+    @Deprecated
+    public String marshal() {
+        return element.serialize();
+    }
+
+    @Override
+    @Deprecated
+    public JsonElement getElement() {
+        return element;
+    }
+
+    @Override
+    public JsonBuilder builder() {
+        if (builder == null) builder = new BuilderImpl();
+        return builder;
+    }
+
+    @Override
+    public JsonMarshaller marshaller(T t) {
+        return new MarshallerImpl(t);
+    }
+
+    @Override
+    public JsonUnmarshaller unmarshaller(String jsonString) {
+        return new UnmarshallerImpl(parser, jsonString);
+    }
+
+/*
     @SuppressWarnings("unchecked")
     @Override
     public T unmarshal(Class<T> unmarshalClass) throws JsonException {
@@ -112,12 +177,12 @@ public class LightJson<T> implements Json<T> {
 
     private static class Marshaller {
         private static JsonElement marshal(Object object) throws JsonException {
-            if (object == null) return new JsonElement(JsonType.NULL);
+            if (object == null) return new JsonElementImpl(JsonType.NULL);
 
             Class aClass = object.getClass();
             if (!aClass.isAnnotationPresent(JsonObject.class)) throw new JsonException("Class is not annotated as JsonObject");
 
-            JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
+            JsonElement jsonElement = new JsonElementImpl(JsonType.OBJECT);
 
             boolean isAutomaticBinding = ((JsonObject)aClass.getAnnotation(JsonObject.class)).AutomaticBinding();
 
@@ -146,7 +211,7 @@ public class LightJson<T> implements Json<T> {
                         field.setAccessible(true);
 
                         if (field.get(object) == null) {
-                            jsonElement.add(name, new JsonElement(JsonType.NULL));
+                            jsonElement.add(name, new JsonElementImpl(JsonType.NULL));
                             continue;
                         }
 
@@ -202,10 +267,10 @@ public class LightJson<T> implements Json<T> {
                                 } else throw new JsonException("Wrong return type");
                                 break;
                             case NULL:
-                                jsonElement.add(jsonName, new JsonElement(JsonType.NULL));
+                                jsonElement.add(jsonName, new JsonElementImpl(JsonType.NULL));
                                 break;
                             case RAW:
-                                if (JsonElement.class.isAssignableFrom(fieldType)) {
+                                if (JsonElementImpl.class.isAssignableFrom(fieldType)) {
                                     jsonElement.add(jsonName, field.get(object));
                                 } else throw new JsonException("Raw fields must be of JsonElement type");
                         }
@@ -249,7 +314,7 @@ public class LightJson<T> implements Json<T> {
         }
 
         private static JsonElement processCollection(Collection collection) throws JsonException {
-            JsonElement jsonElement = new JsonElement(JsonType.ARRAY);
+            JsonElement jsonElement = new JsonElementImpl(JsonType.ARRAY);
             if (collection.isEmpty()) return jsonElement;
             Class genericClass;
             Iterator it = collection.iterator();
@@ -263,7 +328,7 @@ public class LightJson<T> implements Json<T> {
         }
 
         private static JsonElement processArray(Object array, Class<?> componentType) throws JsonException {
-            JsonElement jsonElement = new JsonElement(JsonType.ARRAY);
+            JsonElement jsonElement = new JsonElementImpl(JsonType.ARRAY);
             int length = Array.getLength(array);
             if (length == 0) return jsonElement;
             if (componentType != null)
@@ -274,7 +339,7 @@ public class LightJson<T> implements Json<T> {
         }
 
         private static JsonElement processMap(Map map, Field field) throws JsonException {
-            JsonElement jsonElement = new JsonElement(JsonType.OBJECT);
+            JsonElement jsonElement = new JsonElementImpl(JsonType.OBJECT);
             if (map.isEmpty()) return jsonElement;
             Class<?> keyClass;
             if (field != null) {
@@ -426,7 +491,7 @@ public class LightJson<T> implements Json<T> {
                                 field.set(object, null);
                                 break;
                             case RAW:
-                                if (JsonElement.class.isAssignableFrom(fieldType)) {
+                                if (JsonElementImpl.class.isAssignableFrom(fieldType)) {
                                     field.set(object, jsonElement.get(jsonName));
                                 } else throw new JsonException("Raw field: " + jsonName + " must be a subtype of JsonElement");
 
@@ -515,4 +580,5 @@ public class LightJson<T> implements Json<T> {
             return map;
         }
     }
+*/
 }
