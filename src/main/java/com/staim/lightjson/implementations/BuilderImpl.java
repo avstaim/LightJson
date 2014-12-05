@@ -28,7 +28,7 @@ public class BuilderImpl implements JsonBuilder {
             public ObjectBuilder append(String key, Builder builder) {
                 return append(key, builder.build());
             }
-            @Override public JsonElement build() { return new JsonObject(data); }
+            @Override public JsonElement build() { return new JsonObjectElement(data); }
         };
     }
 
@@ -42,12 +42,12 @@ public class BuilderImpl implements JsonBuilder {
                 return this;
             }
             @Override public ArrayBuilder append(Builder builder) { return append(builder.build()); }
-            @Override public JsonElement build() { return new JsonArray(data); }
+            @Override public JsonElement build() { return new JsonArrayElement(data); }
         };
     }
 
-    @Override public JsonElement string(String string) { return new JsonString(string); }
-    @Override public JsonElement number(Number number) { return new JsonNumber(number); }
-    @Override public JsonElement bool(boolean bool) { return new JsonBoolean(bool); }
-    @Override public JsonElement nil() { return new JsonNull(); }
+    @Override public JsonElement string(String string) { return new JsonStringElement(string); }
+    @Override public JsonElement number(Number number) { return new JsonNumberElement(number); }
+    @Override public JsonElement bool(boolean bool) { return new JsonBooleanElement(bool); }
+    @Override public JsonElement nil() { return new JsonNullElement(); }
 }

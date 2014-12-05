@@ -1,6 +1,8 @@
 package com.staim.lightjson;
 
 /**
+ * Json Unmarshaller Interface
+ *
  * Created by alexeyshcherbinin on 03.12.14.
  */
 public interface JsonUnmarshaller {

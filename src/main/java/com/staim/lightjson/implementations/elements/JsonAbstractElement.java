@@ -22,7 +22,19 @@ abstract class JsonAbstractElement implements JsonElement {
     @Override public Number getNumberData() { return null; }
     @Override public String getStringData() { return null; }
     @Override public Boolean getBooleanData() { return null; }
-    @Override public Date getDateData() {return null; }
+    @Override public Date getDateData() { return null; }
+
+    protected abstract Object getObjectData();
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T getData() {
+        try {
+            return (T)getObjectData();
+        } catch (ClassCastException e) {
+            return null;
+        }
+    }
 
     @Override
     public JsonElement get(int index) throws JsonException {
@@ -63,13 +75,13 @@ abstract class JsonAbstractElement implements JsonElement {
     */
     @Override public String toString() { return this.serialize(); }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "deprecation"})
     @Override
     public String serialize() {
         switch (getType()) {
             case OBJECT:
                 String resObject = "";
-                Map<String, JsonElement> objectData = (Map<String, JsonElement>) getData();
+                Map<String, JsonElement> objectData = getData();
                 for (Map.Entry<String, JsonElement> entry : objectData.entrySet()) {
                     if (!resObject.isEmpty()) resObject += ", ";
                     final String key = entry.getKey();
@@ -79,7 +91,7 @@ abstract class JsonAbstractElement implements JsonElement {
                 return "{" + resObject + "}";
             case ARRAY:
                 String resArray = "";
-                Collection<JsonElement> arrayData = (Collection<JsonElement>) getData();
+                Collection<JsonElement> arrayData = getData();
                 for (JsonElement anArrayData : arrayData) {
                     if (!resArray.isEmpty()) resArray += ", ";
                     resArray += (anArrayData).serialize();
@@ -147,15 +159,15 @@ abstract class JsonAbstractElement implements JsonElement {
      */
     @SuppressWarnings("unchecked")
     protected JsonElement getJsonElementFromObject(Object object) throws JsonException {
-        if (object == null)                return new JsonNull();
+        if (object == null)                return new JsonNullElement();
         if (object instanceof JsonElement) return (JsonElement)object;
-        if (object instanceof String)      return new JsonString((String)object);
-        if (object instanceof Number)      return new JsonNumber((Number)object);
-        if (object instanceof Boolean)     return new JsonBoolean((Boolean)object);
-        if (object instanceof Map)         return new JsonObject((Map<String, JsonElement>) object);
-        if (object instanceof Collection)  return new JsonArray((Collection<JsonElement>)object);
-        if (object instanceof Date)        return new JsonDate((Date)object);
-        return new JsonNull();
+        if (object instanceof String)      return new JsonStringElement((String)object);
+        if (object instanceof Number)      return new JsonNumberElement((Number)object);
+        if (object instanceof Boolean)     return new JsonBooleanElement((Boolean)object);
+        if (object instanceof Map)         return new JsonObjectElement((Map<String, JsonElement>) object);
+        if (object instanceof Collection)  return new JsonArrayElement((Collection<JsonElement>)object);
+        if (object instanceof Date)        return new JsonDateElement((Date)object);
+        return new JsonNullElement();
     }
 
     /**

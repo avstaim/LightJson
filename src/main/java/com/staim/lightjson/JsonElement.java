@@ -37,9 +37,9 @@ public interface JsonElement {
     /**
      * Get JsonElement contents as Object
      *
-     * @return Object
+     * @return Generified Object
      */
-    Object getData();
+    <T> T getData();
 
     /**
      * Get sub element of Array-type Json Element
@@ -76,16 +76,11 @@ public interface JsonElement {
      */
     void add(String name, Object object) throws JsonException;
 
-    /* (non-Javadoc)
-        * @see java.lang.Object#toString()
-        */
-    @Override
-    String toString();
-
     /**
      * Serialize JSON Element to JSONString
      *
      * @return JSON String
      */
+    @Deprecated
     String serialize();
 }

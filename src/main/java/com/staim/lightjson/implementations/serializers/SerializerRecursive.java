@@ -1,29 +1,30 @@
-package com.staim.lightjson.implementations;
+package com.staim.lightjson.implementations.serializers;
 
 import com.staim.lightjson.JsonElement;
+import com.staim.lightjson.JsonSerializer;
 
 import java.text.CharacterIterator;
 import java.text.SimpleDateFormat;
 import java.text.StringCharacterIterator;
-import java.util.*;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RecursiveTask;
+import java.util.Collection;
+import java.util.Map;
 
 /**
+ * Simple Recursive Serializer
+ *
  * Created by alexeyshcherbinin on 05.12.14.
  */
-public class SerializerImpl {
+public class SerializerRecursive implements JsonSerializer {
     public String serialize(JsonElement element) {
-        return new ForkJoinPool().invoke(new SerializerWorker(element));
+        return (new SerializerWorker(element)).compute();
     }
 
     @SuppressWarnings("unchecked")
-    private class SerializerWorker extends RecursiveTask<String> {
+    private class SerializerWorker {
         private final JsonElement element;
 
         public SerializerWorker(JsonElement element) { this.element = element; }
 
-        @Override
         protected String compute() {
             if (element == null) return null;
 
@@ -41,19 +42,13 @@ public class SerializerImpl {
 
         private String serializeObject() {
             String resObject = "";
-            Map<String, JsonElement> objectData = (Map<String, JsonElement>) element.getData();
-            Map<String, SerializerWorker> subTasks = new HashMap<>();
+            Map<String, JsonElement> objectData = element.getData();
 
             for (Map.Entry<String, JsonElement> childEntry : objectData.entrySet()) {
                 SerializerWorker task = new SerializerWorker(childEntry.getValue());
-                task.fork(); // execute async
-                subTasks.put(childEntry.getKey(), task);
-            }
-
-            for (Map.Entry<String, SerializerWorker> taskEntry : subTasks.entrySet()) {
-                final String value = taskEntry.getValue().join();
+                final String value = task.compute();
                 if (!resObject.isEmpty()) resObject += ", ";
-                final String key = taskEntry.getKey();
+                final String key = childEntry.getKey();
                 resObject += String.format("\"%1$s\" : %2$s", key, (value != null ? value : "\"null\""));
             }
 
@@ -62,17 +57,11 @@ public class SerializerImpl {
 
         private String serializeArray() {
             String resArray = "";
-            Collection<JsonElement> arrayData = (Collection<JsonElement>)element.getData();
-            List<SerializerWorker> subTasks = new LinkedList<>();
+            Collection<JsonElement> arrayData = element.getData();
 
             for (JsonElement child : arrayData) {
                 SerializerWorker task = new SerializerWorker(child);
-                task.fork(); // execute async
-                subTasks.add(task);
-            }
-
-            for (SerializerWorker task : subTasks) {
-                final String value = task.join();
+                final String value = task.compute();
                 if (!resArray.isEmpty()) resArray += ", ";
                 resArray += value;
             }
@@ -135,5 +124,4 @@ public class SerializerImpl {
         }
         return result.toString();
     }
-
 }

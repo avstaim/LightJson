@@ -4,6 +4,7 @@ package com.staim.lightjson;
  * Json Builder
  * Created by alexeyshcherbinin on 03.12.14.
  */
+@SuppressWarnings("UnusedDeclaration")
 public interface JsonBuilder {
     interface Builder {
         JsonElement build();

@@ -1,13 +1,11 @@
 package com.staim.lightjson.implementations;
 
-import com.staim.lightjson.JsonElement;
-import com.staim.lightjson.JsonException;
-import com.staim.lightjson.JsonMarshaller;
-import com.staim.lightjson.JsonType;
+import com.staim.lightjson.*;
 import com.staim.lightjson.annotations.JsonField;
 import com.staim.lightjson.annotations.JsonObject;
-import com.staim.lightjson.implementations.elements.JsonArray;
-import com.staim.lightjson.implementations.elements.JsonNull;
+import com.staim.lightjson.implementations.elements.JsonArrayElement;
+import com.staim.lightjson.implementations.elements.JsonNullElement;
+import com.staim.lightjson.implementations.elements.JsonObjectElement;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -25,21 +23,24 @@ import java.util.Map;
 @SuppressWarnings("unchecked")
 public class MarshallerImpl implements JsonMarshaller {
     private Object _object;
+    private JsonSerializer _serializer;
 
-    public MarshallerImpl(Object object) { _object = object; }
+    public MarshallerImpl(Object object, JsonSerializer serializer) {
+        _object = object; _serializer = serializer;
+    }
 
     @Override
     public String marshal() throws JsonException {
-        return marshal(_object).serialize();
+        return _serializer.serialize(marshal(_object));
     }
 
     private static JsonElement marshal(Object object) throws JsonException {
-        if (object == null) return new JsonNull();
+        if (object == null) return new JsonNullElement();
 
         Class aClass = object.getClass();
         if (!aClass.isAnnotationPresent(JsonObject.class)) throw new JsonException("Class is not annotated as JsonObject");
 
-        JsonElement jsonElement = new com.staim.lightjson.implementations.elements.JsonObject();
+        JsonElement jsonElement = new JsonObjectElement();
 
         boolean isAutomaticBinding = ((JsonObject)aClass.getAnnotation(JsonObject.class)).AutomaticBinding();
 
@@ -68,7 +69,7 @@ public class MarshallerImpl implements JsonMarshaller {
                     field.setAccessible(true);
 
                     if (field.get(object) == null) {
-                        jsonElement.add(name, new JsonNull());
+                        jsonElement.add(name, new JsonNullElement());
                         continue;
                     }
 
@@ -124,7 +125,7 @@ public class MarshallerImpl implements JsonMarshaller {
                             } else throw new JsonException("Wrong return type");
                             break;
                         case NULL:
-                            jsonElement.add(jsonName, new JsonNull());
+                            jsonElement.add(jsonName, new JsonNullElement());
                             break;
                         case RAW:
                             if (JsonElement.class.isAssignableFrom(fieldType)) {
@@ -171,7 +172,7 @@ public class MarshallerImpl implements JsonMarshaller {
     }
 
     private static JsonElement processCollection(Collection collection) throws JsonException {
-        JsonElement jsonElement = new JsonArray();
+        JsonElement jsonElement = new JsonArrayElement();
         if (collection.isEmpty()) return jsonElement;
         Class genericClass;
         Iterator it = collection.iterator();
@@ -185,7 +186,7 @@ public class MarshallerImpl implements JsonMarshaller {
     }
 
     private static JsonElement processArray(Object array, Class<?> componentType) throws JsonException {
-        JsonElement jsonElement = new JsonArray();
+        JsonElement jsonElement = new JsonArrayElement();
         int length = Array.getLength(array);
         if (length == 0) return jsonElement;
         if (componentType != null)
@@ -196,7 +197,7 @@ public class MarshallerImpl implements JsonMarshaller {
     }
 
     private static JsonElement processMap(Map map, Field field) throws JsonException {
-        JsonElement jsonElement = new JsonArray();
+        JsonElement jsonElement = new JsonArrayElement();
         if (map.isEmpty()) return jsonElement;
         Class<?> keyClass;
         if (field != null) {

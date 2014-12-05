@@ -8,13 +8,13 @@ import com.staim.lightjson.JsonType;
  *
  * Created by alexeyshcherbinin on 04.12.14.
  */
-public class JsonBoolean extends JsonAbstractElement implements JsonElement {
+public class JsonBooleanElement extends JsonAbstractElement implements JsonElement {
     private static final JsonType type = JsonType.BOOLEAN;
     private Boolean data;
 
-    public JsonBoolean(boolean bool) { data = bool; }
+    public JsonBooleanElement(boolean bool) { data = bool; }
 
     @Override public JsonType getType() { return type; }
     @Override public Boolean getBooleanData() { return data; }
-    @Override public Object getData() { return data; }
+    @Override public Object getObjectData() { return data; }
 }

@@ -8,9 +8,9 @@ import com.staim.lightjson.JsonType;
  *
  * Created by alexeyshcherbinin on 04.12.14.
  */
-public class JsonNull extends JsonAbstractElement implements JsonElement {
+public class JsonNullElement extends JsonAbstractElement implements JsonElement {
     private static final JsonType type = JsonType.NULL;
 
     @Override public JsonType getType() { return type; }
-    @Override public Object getData() { return null; }
+    @Override public Object getObjectData() { return null; }
 }

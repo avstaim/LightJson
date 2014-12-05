@@ -2,9 +2,10 @@ package com.staim.lightjson.test;
 
 
 import com.staim.lightjson.*;
-import com.staim.lightjson.implementations.SerializerImpl;
 import com.staim.lightjson.implementations.parsers.ParserScalable;
 import com.staim.lightjson.implementations.parsers.ParserSimple;
+import com.staim.lightjson.implementations.serializers.SerializerForkJoin;
+import com.staim.lightjson.implementations.serializers.SerializerRecursive;
 import junit.framework.Assert;
 import org.junit.Test;
 
@@ -111,6 +112,9 @@ public class JsonTest {
             end = System.currentTimeMillis();
             System.out.println("testJson parsing time old parser: " + (end - start) + "ms.");
 
+            System.out.println(element.serialize());
+            System.out.println(LightJson.json().serializer().serialize(element));
+
             start = System.currentTimeMillis();
             for (int i = 0; i<100; i++)
                 element = parserNew.parse(testJson);
@@ -124,27 +128,43 @@ public class JsonTest {
             end = System.currentTimeMillis();
             System.out.println("Old serializer: " + (end - start) + "ms.");
 
-
             start = System.currentTimeMillis();
-            String restoredStr2 = (new SerializerImpl()).serialize(element);
+            String restoredStr2 = (new SerializerForkJoin()).serialize(element);
             end = System.currentTimeMillis();
             System.out.println("New serializer: " + (end - start) + "ms.");
 
+            start = System.currentTimeMillis();
+            String restoredStr3 = (new SerializerRecursive()).serialize(element);
+            end = System.currentTimeMillis();
+            System.out.println("New serializer (NoFJP): " + (end - start) + "ms.");
+
             Assert.assertEquals(restoredStr1.length(), restoredStr2.length());
+            Assert.assertEquals(restoredStr1.length(), restoredStr3.length());
 
             element = parserNew.parse(testJson);
 
+            final int iterations = 100;
+
             start = System.currentTimeMillis();
-            restoredStr1 = element.serialize();
+            for (int i = 0; i < iterations; i++)
+                restoredStr1 = element.serialize();
             end = System.currentTimeMillis();
             System.out.println("Old serializer: " + (end - start) + "ms.");
 
             start = System.currentTimeMillis();
-            restoredStr2 = (new SerializerImpl()).serialize(element);
+            for (int i = 0; i < iterations; i++)
+                restoredStr2 = (new SerializerForkJoin()).serialize(element);
             end = System.currentTimeMillis();
             System.out.println("New serializer: " + (end - start) + "ms.");
 
+            start = System.currentTimeMillis();
+            for (int i = 0; i < iterations; i++)
+                restoredStr3 = (new SerializerRecursive()).serialize(element);
+            end = System.currentTimeMillis();
+            System.out.println("New serializer (NoFJP): " + (end - start) + "ms.");
+
             Assert.assertEquals(restoredStr1.length(), restoredStr2.length());
+            Assert.assertEquals(restoredStr1.length(), restoredStr3.length());
 
             //String restoredStr = LightJson.json().marshaller(element).marshal();
             System.out.println("restoredStr: " + restoredStr2);

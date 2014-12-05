@@ -8,13 +8,13 @@ import com.staim.lightjson.JsonType;
  *
  * Created by alexeyshcherbinin on 04.12.14.
  */
-public class JsonNumber extends JsonAbstractElement implements JsonElement {
+public class JsonNumberElement extends JsonAbstractElement implements JsonElement {
     private static final JsonType type = JsonType.NUMBER;
     private Number data;
 
-    public JsonNumber(Number number) { data = number; }
+    public JsonNumberElement(Number number) { data = number; }
 
     @Override public JsonType getType() { return type; }
     @Override public Number getNumberData() { return data; }
-    @Override public Object getData() { return data; }
+    @Override public Object getObjectData() { return data; }
 }

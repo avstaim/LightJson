@@ -132,21 +132,22 @@ public class ElementImpl implements JsonElement {
         return dateData;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public Object getData() {
+    public <T> T getData() {
         switch (this.type) {
             case OBJECT:
-                return this.objectData;
+                return (T)this.objectData;
             case ARRAY:
-                return this.arrayData;
+                return (T)this.arrayData;
             case BOOLEAN:
-                return this.booleanData;
+                return (T)this.booleanData;
             case NUMBER:
-                return this.numberData;
+                return (T)this.numberData;
             case STRING:
-                return this.stringData;
+                return (T)this.stringData;
             case DATE:
-                return this.dateData;
+                return (T)this.dateData;
             case NULL:
             default:
                 return null;
@@ -198,6 +199,7 @@ public class ElementImpl implements JsonElement {
     /* (non-Javadoc)
     * @see java.lang.Object#toString()
     */
+    @SuppressWarnings("deprecation")
     @Override
     public String toString() {
         return this.serialize();
@@ -388,7 +390,9 @@ public class ElementImpl implements JsonElement {
 
     //////////////////////////// SERIALIZATION /////////////////////////////////////////////////////////////////////////
 
+    @SuppressWarnings("deprecation")
     @Override
+    @Deprecated
     public String serialize() {
         switch (this.type) {
             case OBJECT:
@@ -404,6 +408,7 @@ public class ElementImpl implements JsonElement {
                 String resArray = "";
                 for (JsonElement anArrayData : this.arrayData) {
                     if (!resArray.isEmpty()) resArray += ", ";
+                    //noinspection deprecation
                     resArray += (anArrayData).serialize();
                 }
                 return "[" + resArray + "]";

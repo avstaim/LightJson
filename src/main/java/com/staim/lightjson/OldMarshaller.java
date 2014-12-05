@@ -14,9 +14,11 @@ import java.util.Map;
 
 /**
  * Deprecated Marshaller
+ *
  * Created by alexeyshcherbinin on 04.12.14.
  */
 @Deprecated
+@SuppressWarnings({"unchecked", "deprecation"})
 class OldMarshaller {
     static JsonElement marshal(Object object) throws JsonException {
         if (object == null) return new ElementImpl(JsonType.NULL);

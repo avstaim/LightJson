@@ -5,8 +5,6 @@ import com.staim.lightjson.JsonException;
 import com.staim.lightjson.JsonParser;
 import com.staim.lightjson.implementations.elements.*;
 
-import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,16 +16,15 @@ import java.util.Map;
  * Created by alexeyshcherbinin on 03.12.14.
  */
 public class ParserScalable implements JsonParser {
-
     @Override
     public JsonElement parse(String json) throws JsonException {
         final String jsonString = json.trim();
 
         // Try trivial variants
         if ("{}".equals(jsonString) || "{ }".equals(jsonString))  // Empty Object
-            return new JsonObject();
+            return new JsonObjectElement();
         if ("[]".equals(jsonString) || "[ ]".equals(jsonString)) // Empty Array
-            return new JsonArray();
+            return new JsonArrayElement();
 
         JsonReader reader = new JsonReader(jsonString);
         try {
@@ -86,7 +83,7 @@ public class ParserScalable implements JsonParser {
     private JsonElement parseObject(JsonReader reader) throws JsonException {
         Map<String, JsonElement> elements = new HashMap<>();
         try {
-            char c = (char)reader.read();
+            char c = reader.read();
             if (c != '{') throw new JsonException("Internal Error");
 
             do {
@@ -96,7 +93,7 @@ public class ParserScalable implements JsonParser {
                         return c != '\"' && !Character.isDigit(c) && c != '}';
                     }
                 });
-                c = (char)reader.read();
+                c = reader.read();
                 String key;
                 if (c == '}') break;
                 else if (c == '\"') {
@@ -119,12 +116,14 @@ public class ParserScalable implements JsonParser {
                     });
                 }
 
-                reader.skipNoBack(new CharacterChecker() {
-                    @Override
-                    public boolean check(char c) {
-                        return c != ':';
-                    }
-                });
+//                reader.skipNoBack(new CharacterChecker() {
+//                    @Override
+//                    public boolean check(char c) {
+//                        return c != ':';
+//                    }
+//                });
+
+                reader.skipToCharNoBack(':');
 
                 elements.put(key, parse(reader));
 
@@ -135,20 +134,16 @@ public class ParserScalable implements JsonParser {
                     }
                 });
 
-                c = (char) reader.read();
+                c = reader.read();
             } while (c != '}');
-        } catch (ClosingSymbolException ignored) {
-        } catch (IOException e) {
-            throw new JsonException(e.getMessage());
-        }
-
-        return new JsonObject(elements);
+        } catch (ClosingSymbolException ignored) {}
+        return new JsonObjectElement(elements);
     }
 
     private JsonElement parseArray(JsonReader reader) throws JsonException {
         List<JsonElement> elementList = new ArrayList<>();
         try {
-            char c = (char)reader.read();
+            char c = reader.read();
             if (c != '[') throw new JsonException("Internal Error");
 
             do {
@@ -161,14 +156,10 @@ public class ParserScalable implements JsonParser {
                     }
                 });
 
-                c = (char) reader.read();
+                c = reader.read();
             } while (c != ']');
-        } catch (ClosingSymbolException ignored) {
-        } catch (IOException e) {
-            throw new JsonException(e.getMessage());
-        }
-
-        return new JsonArray(elementList);
+        } catch (ClosingSymbolException ignored) {}
+        return new JsonArrayElement(elementList);
     }
 
     private JsonElement parseString(JsonReader reader) throws JsonException {
@@ -189,13 +180,14 @@ public class ParserScalable implements JsonParser {
             }
         });
 
-        if (string.startsWith("/"))
+        if (string.startsWith("\""))
             string = string.substring(1, string.length() - 1);
-        return new JsonString(string);
+        return new JsonStringElement(string);
     }
 
     private JsonElement parseNumber(JsonReader reader) throws JsonException {
         final boolean[] isSeparatorGlobal = new boolean[1];
+        isSeparatorGlobal[0] = false;
         String string = reader.read(new CharacterChecker() {
             @Override
             public boolean check(char c) {
@@ -204,8 +196,9 @@ public class ParserScalable implements JsonParser {
                 return Character.isDigit(c) || c == '-' || isSeparator;
             }
         });
-        Number number = isSeparatorGlobal[0] ? Double.parseDouble(string) : Long.parseLong(string);
-        return new JsonNumber(number);
+        @SuppressWarnings("RedundantCast")
+        Number number = isSeparatorGlobal[0] ? (Number)Double.parseDouble(string) : (Number)Long.parseLong(string);
+        return new JsonNumberElement(number);
     }
 
     private JsonElement parseOther(JsonReader reader) throws JsonException {
@@ -216,118 +209,99 @@ public class ParserScalable implements JsonParser {
             }
         });
         if (string.equalsIgnoreCase("true") || string.equalsIgnoreCase("yes"))
-            return new JsonBoolean(true);
+            return new JsonBooleanElement(true);
         if (string.equalsIgnoreCase("false") || string.equalsIgnoreCase("no"))
-            return new JsonBoolean(false);
+            return new JsonBooleanElement(false);
         if (string.equalsIgnoreCase("null") || string.equalsIgnoreCase("nil"))
-            return new JsonNull();
+            return new JsonNullElement();
 
         if (string.equalsIgnoreCase("nan"))
-            return new JsonNumber(Double.NaN);
+            return new JsonNumberElement(Double.NaN);
         if (string.equalsIgnoreCase("inf") || string.equalsIgnoreCase("+inf") || string.equalsIgnoreCase("infinity") || string.equalsIgnoreCase("+infinity"))
-            return new JsonNumber(Double.POSITIVE_INFINITY);
+            return new JsonNumberElement(Double.POSITIVE_INFINITY);
         if (string.equalsIgnoreCase("-inf") || string.equalsIgnoreCase("-infinity"))
-            return new JsonNumber(Double.NEGATIVE_INFINITY);
+            return new JsonNumberElement(Double.NEGATIVE_INFINITY);
 
-        return new JsonString(string);
+        return new JsonStringElement(string);
     }
 
     interface CharacterChecker {
         boolean check(char c);
     }
 
-    @SuppressWarnings("SynchronizeOnNonFinalField")
-    public class JsonReader extends Reader {
-        private String str;
+    public class JsonReader {
+        private String string;
         private int length;
         private int next = 0;
 
-        public JsonReader(String s)  {
-            this.str = s;
-            this.length = s.length();
+        public JsonReader(String string)  {
+            this.string = string;
+            this.length = string.length();
         }
 
-        private void ensureOpen() throws IOException {
-            if (str == null)
-                throw new IOException("Stream closed");
-        }
-
-        @Override
-        public int read() throws IOException {
-            synchronized (lock) {
-                ensureOpen();
-                if (next >= length)
-                    throw new IOException("Unexpected End of Stream");
-                return str.charAt(next++);
-            }
-        }
-
-        @SuppressWarnings("NullableProblems")
-        @Override
-        public int read(char[] buf, int off, int len) throws IOException {
-            throw new IOException("Not supported");
-        }
-
-        @Override
-        public long skip(long ns) throws IOException {
-            synchronized (lock) {
-                ensureOpen();
-                if (next >= length)
-                    return 0;
-                // Bound skip by beginning and end of the source
-                long n = Math.min(length - next, ns);
-                n = Math.max(-next, n);
-                next += n;
-                return n;
-            }
-        }
-
-        public void close() {
-            str = null;
-        }
+//        public long skip(long ns) throws IOException {
+//            if (next >= length)
+//                return 0;
+//            // Bound skip by beginning and end of the source
+//            long n = Math.min(length - next, ns);
+//            n = Math.max(-next, n);
+//            next += n;
+//            return n;
+//        }
 
         public void stepBack() {
            if (next > 0) next--;
         }
 
-        public String read(CharacterChecker checker) throws JsonException {
-            try {
-                char c;
-                StringBuilder stringBuilder = new StringBuilder();
-                boolean check;
-                do {
-                    c = (char) read();
-                    check = checker.check(c);
-                    if (check) stringBuilder.append(c);
-                } while (check);
-                stepBack();
-                return  stringBuilder.toString();
-            } catch (IOException e) {
-                throw new JsonException(e.getMessage());
-            }
+
+        public char read() throws JsonException {
+            if (next >= length)
+                throw new JsonException("Unexpected End of Json");
+            return string.charAt(next++);
         }
 
+        public String read(CharacterChecker checker) throws JsonException {
+            char c;
+            StringBuilder stringBuilder = new StringBuilder();
+            boolean check;
+            do {
+                c = read();
+                check = checker.check(c);
+                if (check) stringBuilder.append(c);
+            } while (check);
+            stepBack();
+            return stringBuilder.toString();
+        }
+
+//        public String readToChar(char ch) throws JsonException {
+//            int found = string.indexOf(ch, next);
+//            if (found == -1) throw new JsonException("Unexpected End of Json");
+//            String read = string.substring(next, found);
+//            next = found;
+//            return read;
+//        }
+
         public void skip(CharacterChecker checker) throws JsonException {
-            try {
-                char c;
-                do {
-                    c = (char) read();
-                } while (checker.check(c));
-                stepBack();
-            } catch (IOException e) {
-                throw new JsonException(e.getMessage());
-            }
+            char c;
+            do { c = read(); } while (checker.check(c));
+            stepBack();
         }
 
         public void skipNoBack(CharacterChecker checker) throws JsonException {
-            try {
-                char c;
-                do {
-                    c = (char) read();
-                } while (checker.check(c));
-            } catch (IOException e) {
-                throw new JsonException(e.getMessage());
-            }
+            char c;
+            do { c = read(); } while (checker.check(c));
+        }
+
+//        public void skipToChar(char ch) throws JsonException {
+//            int found = string.indexOf(ch, next);
+//            if (found == -1) throw new JsonException("Unexpected End of Json");
+//            next = found;
+//        }
+
+        public void skipToCharNoBack(char ch) throws JsonException {
+            int found = string.indexOf(ch, next);
+            if (found == -1) throw new JsonException("Unexpected End of Json");
+            next = found + 1;
         }
     }
 }

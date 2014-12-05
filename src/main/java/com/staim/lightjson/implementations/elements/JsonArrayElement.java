@@ -4,49 +4,50 @@ import com.staim.lightjson.JsonElement;
 import com.staim.lightjson.JsonException;
 import com.staim.lightjson.JsonType;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 /**
- * Json Object Element
+ * Json Array Element
  *
+ * Created by alexeyshcherbinin on 04.12.14.
  */
-@SuppressWarnings("UnusedDeclaration")
-public class JsonObject extends JsonAbstractElement implements JsonElement {
-    private static final JsonType type = JsonType.OBJECT;
-    private Map<String, JsonElement> data;
+public class JsonArrayElement extends JsonAbstractElement implements JsonElement {
+    private static final JsonType type = JsonType.ARRAY;
+    private List<JsonElement> data;
 
     //////////////////////////// CONSTRUCTORS //////////////////////////////////////////////////////////////////////////
 
     /**
      * Create empty JSON Object
      */
-    public JsonObject() { data = new HashMap<>(); }
+    public JsonArrayElement() { data = new ArrayList<>(); }
 
     /**
      * Create JSON Element of given type with initializer
      * @param data  - Object Data
      */
-    public JsonObject(Map<String, JsonElement> data) { this.data = data; }
+    public JsonArrayElement(Collection<JsonElement> data) { this.data = new ArrayList<>(data); }
 
     //////////////////////////// INTERFACE /////////////////////////////////////////////////////////////////////////////
 
     //// Getters ////
 
     @Override public JsonType getType() { return type; }
-    @Override public Object getData() { return this.data; }
+    @Override public Object getObjectData() { return this.data; }
 
     @Override
-    public JsonElement get(String name) throws JsonException {
+    public JsonElement get(int index) throws JsonException {
         if (data == null) throw new JsonException("Data is missing");
-        return data.get(name);
+        return data.get(index);
     }
 
     @Override
     public Iterator<JsonElement> iterator() throws JsonException {
         if (data == null) throw new JsonException("Data is missing");
-        return data.values().iterator();
+        return data.iterator();
     }
 
     @Override
@@ -58,8 +59,8 @@ public class JsonObject extends JsonAbstractElement implements JsonElement {
     //// Adders ////
 
     @Override
-    public void add(String name, Object object) throws JsonException {
+    public void add(Object object) throws JsonException {
         if (data == null) throw new JsonException("Data is missing");
-        data.put(name, getJsonElementFromObject(object));
+        data.add(getJsonElementFromObject(object));
     }
 }
