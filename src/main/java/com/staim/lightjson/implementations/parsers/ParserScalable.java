@@ -190,10 +190,10 @@ public class ParserScalable implements JsonParser {
         isSeparatorGlobal[0] = false;
         String string = reader.read(new CharacterChecker() {
             @Override
-            public boolean check(char c) {
+            public boolean check(char c)
                 boolean isSeparator = (c == '.');
                 if (isSeparator) isSeparatorGlobal[0] = true;
-                return Character.isDigit(c) || c == '-' || isSeparator;
+                return Character.isDigit(c) || c == '-' || isSeparator || c == 'e';
             }
         });
         @SuppressWarnings("RedundantCast")
