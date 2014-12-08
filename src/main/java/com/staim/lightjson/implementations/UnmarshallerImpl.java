@@ -9,6 +9,7 @@ import java.util.*;
 
 /**
  * JSON Unmarshaller Implementation
+ *
  * Created by alexeyshcherbinin on 04.12.14.
  */
 @SuppressWarnings("unchecked")
@@ -106,18 +107,18 @@ public class UnmarshallerImpl implements JsonUnmarshaller {
                             break;
                         case STRING:
                             if (String.class.isAssignableFrom(fieldType)) {
-                                String stringData = jsonElement.get(jsonName).getStringData();
+                                String stringData = jsonElement.get(jsonName).getData();
                                 if (stringData != null) field.set(object, stringData);
                                 else {
-                                    Number numberData = jsonElement.get(jsonName).getNumberData();
+                                    Number numberData = jsonElement.get(jsonName).getData();
                                     if (numberData != null) field.set(object, numberData.toString());
                                 }
                             } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                             break;
                         case NUMBER:
-                            Number numberData = jsonElement.get(jsonName).getNumberData();
+                            Number numberData = jsonElement.get(jsonName).getData();
                             if (numberData == null) {
-                                String stringData = jsonElement.get(jsonName).getStringData();
+                                String stringData = jsonElement.get(jsonName).getData();
                                 try {
                                     if (stringData != null && !stringData.isEmpty()) {
                                         if (stringData.contains(".") || stringData.contains(","))
@@ -152,9 +153,9 @@ public class UnmarshallerImpl implements JsonUnmarshaller {
                             break;
                         case BOOLEAN:
                             if (Boolean.class.isAssignableFrom(fieldType) || boolean.class.isAssignableFrom(fieldType)) {
-                                Boolean bool = jsonElement.get(jsonName).getBooleanData();
+                                Boolean bool = jsonElement.get(jsonName).getData();
                                 if (bool == null) {
-                                    String stringData = jsonElement.get(jsonName).getStringData();
+                                    String stringData = jsonElement.get(jsonName).getData();
                                     if (stringData != null) {
                                         if (stringData.equalsIgnoreCase("true") || stringData.equalsIgnoreCase("yes")) bool = true;
                                         else if (stringData.equalsIgnoreCase("false") || stringData.equalsIgnoreCase("no")) bool = false;
@@ -165,7 +166,7 @@ public class UnmarshallerImpl implements JsonUnmarshaller {
                             break;
                         case DATE:
                             if (Date.class.isAssignableFrom(fieldType)) {
-                                field.set(object, jsonElement.get(jsonName).getDateData());
+                                field.set(object, jsonElement.get(jsonName).getData());
                             } else throw new JsonException("Wrong parameter type in field: " + jsonName);
                             break;
                         case NULL:
@@ -211,10 +212,10 @@ public class UnmarshallerImpl implements JsonUnmarshaller {
                 if (Map.class.isAssignableFrom(valueClass)) return processJsonAsMap(jsonElement, valueClass, Util.getSecondGenericClass(valueClass));
                 else return unmarshal(jsonElement, valueClass);
 
-            case STRING:  return jsonElement.getStringData();
-            case NUMBER:  return Util.convertNumber(jsonElement.getNumberData(), valueClass);
-            case BOOLEAN: return jsonElement.getBooleanData();
-            case DATE:    return jsonElement.getDateData();
+            case STRING:  return jsonElement.getData();
+            case NUMBER:  return Util.convertNumber((Number)jsonElement.getData(), valueClass);
+            case BOOLEAN: return jsonElement.getData();
+            case DATE:    return jsonElement.getData();
             case NULL:    return null;
         }
         return null;
@@ -254,7 +255,7 @@ public class UnmarshallerImpl implements JsonUnmarshaller {
             else throw new JsonException("Unsupported collection type");
         } else map = (Map)mapClass.newInstance();
 
-        Map<String, JsonElement> jsonMap = (Map<String, JsonElement>)jsonElement.getData();
+        Map<String, JsonElement> jsonMap = jsonElement.getData();
         for (Map.Entry<String, JsonElement> entry : jsonMap.entrySet())
             map.put(entry.getKey(), getSubObject(jsonElement.get(entry.getKey()), valueClass));
 

@@ -3,7 +3,11 @@ package com.staim.lightjson.implementations.parsers;
 import com.staim.lightjson.JsonElement;
 import com.staim.lightjson.JsonException;
 import com.staim.lightjson.JsonParser;
-import com.staim.lightjson.implementations.elements.*;
+import com.staim.lightjson.JsonType;
+import com.staim.lightjson.implementations.elements.JsonArrayElement;
+import com.staim.lightjson.implementations.elements.JsonNullElement;
+import com.staim.lightjson.implementations.elements.JsonObjectElement;
+import com.staim.lightjson.implementations.elements.JsonPlainElement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * New Parser
+ * New Parser, scalable for BIG JSONs
  *
  * Created by alexeyshcherbinin on 03.12.14.
  */
@@ -116,24 +120,14 @@ public class ParserScalable implements JsonParser {
                     });
                 }
 
-//                reader.skipNoBack(new CharacterChecker() {
-//                    @Override
-//                    public boolean check(char c) {
-//                        return c != ':';
-//                    }
-//                });
-
                 reader.skipToCharNoBack(':');
-
                 elements.put(key, parse(reader));
-
                 reader.skip(new CharacterChecker() {
                     @Override
                     public boolean check(char c) {
                         return c != ',' && c != '}';
                     }
                 });
-
                 c = reader.read();
             } while (c != '}');
         } catch (ClosingSymbolException ignored) {}
@@ -182,7 +176,7 @@ public class ParserScalable implements JsonParser {
 
         if (string.startsWith("\""))
             string = string.substring(1, string.length() - 1);
-        return new JsonStringElement(string);
+        return new JsonPlainElement<>(string, JsonType.STRING);
     }
 
     private JsonElement parseNumber(JsonReader reader) throws JsonException {
@@ -190,7 +184,7 @@ public class ParserScalable implements JsonParser {
         isSeparatorGlobal[0] = false;
         String string = reader.read(new CharacterChecker() {
             @Override
-            public boolean check(char c)
+            public boolean check(char c) {
                 boolean isSeparator = (c == '.');
                 if (isSeparator) isSeparatorGlobal[0] = true;
                 return Character.isDigit(c) || c == '-' || isSeparator || c == 'e';
@@ -198,7 +192,7 @@ public class ParserScalable implements JsonParser {
         });
         @SuppressWarnings("RedundantCast")
         Number number = isSeparatorGlobal[0] ? (Number)Double.parseDouble(string) : (Number)Long.parseLong(string);
-        return new JsonNumberElement(number);
+        return new JsonPlainElement<>(number, JsonType.NUMBER);
     }
 
     private JsonElement parseOther(JsonReader reader) throws JsonException {
@@ -209,20 +203,20 @@ public class ParserScalable implements JsonParser {
             }
         });
         if (string.equalsIgnoreCase("true") || string.equalsIgnoreCase("yes"))
-            return new JsonBooleanElement(true);
+            return new JsonPlainElement<>(true, JsonType.BOOLEAN);
         if (string.equalsIgnoreCase("false") || string.equalsIgnoreCase("no"))
-            return new JsonBooleanElement(false);
+            return new JsonPlainElement<>(false, JsonType.BOOLEAN);
         if (string.equalsIgnoreCase("null") || string.equalsIgnoreCase("nil"))
             return new JsonNullElement();
 
         if (string.equalsIgnoreCase("nan"))
-            return new JsonNumberElement(Double.NaN);
+            return new JsonPlainElement<>(Double.NaN, JsonType.NUMBER);
         if (string.equalsIgnoreCase("inf") || string.equalsIgnoreCase("+inf") || string.equalsIgnoreCase("infinity") || string.equalsIgnoreCase("+infinity"))
-            return new JsonNumberElement(Double.POSITIVE_INFINITY);
+            return new JsonPlainElement<>(Double.POSITIVE_INFINITY, JsonType.NUMBER);
         if (string.equalsIgnoreCase("-inf") || string.equalsIgnoreCase("-infinity"))
-            return new JsonNumberElement(Double.NEGATIVE_INFINITY);
+            return new JsonPlainElement<>(Double.NEGATIVE_INFINITY, JsonType.NUMBER);
 
-        return new JsonStringElement(string);
+        return new JsonPlainElement<>(string, JsonType.STRING);
     }
 
     interface CharacterChecker {
@@ -239,20 +233,9 @@ public class ParserScalable implements JsonParser {
             this.length = string.length();
         }
 
-//        public long skip(long ns) throws IOException {
-//            if (next >= length)
-//                return 0;
-//            // Bound skip by beginning and end of the source
-//            long n = Math.min(length - next, ns);
-//            n = Math.max(-next, n);
-//            next += n;
-//            return n;
-//        }
-
         public void stepBack() {
            if (next > 0) next--;
         }
-
 
         public char read() throws JsonException {
             if (next >= length)
@@ -273,14 +256,6 @@ public class ParserScalable implements JsonParser {
             return stringBuilder.toString();
         }
 
-//        public String readToChar(char ch) throws JsonException {
-//            int found = string.indexOf(ch, next);
-//            if (found == -1) throw new JsonException("Unexpected End of Json");
-//            String read = string.substring(next, found);
-//            next = found;
-//            return read;
-//        }
-
         public void skip(CharacterChecker checker) throws JsonException {
             char c;
             do { c = read(); } while (checker.check(c));
@@ -291,12 +266,6 @@ public class ParserScalable implements JsonParser {
             char c;
             do { c = read(); } while (checker.check(c));
         }
-
-//        public void skipToChar(char ch) throws JsonException {
-//            int found = string.indexOf(ch, next);
-//            if (found == -1) throw new JsonException("Unexpected End of Json");
-//            next = found;
-//        }
 
         public void skipToCharNoBack(char ch) throws JsonException {
             int found = string.indexOf(ch, next);

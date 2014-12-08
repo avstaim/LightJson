@@ -14,7 +14,7 @@ import java.util.*;
  * Json Element for Parsing and Serialization
  *
  */
-@SuppressWarnings("UnusedDeclaration")
+@SuppressWarnings({"UnusedDeclaration", "deprecation"})
 public class ElementImpl implements JsonElement {
     private JsonType type = JsonType.NULL;
 
@@ -135,22 +135,26 @@ public class ElementImpl implements JsonElement {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getData() {
-        switch (this.type) {
-            case OBJECT:
-                return (T)this.objectData;
-            case ARRAY:
-                return (T)this.arrayData;
-            case BOOLEAN:
-                return (T)this.booleanData;
-            case NUMBER:
-                return (T)this.numberData;
-            case STRING:
-                return (T)this.stringData;
-            case DATE:
-                return (T)this.dateData;
-            case NULL:
-            default:
-                return null;
+        try {
+            switch (this.type) {
+                case OBJECT:
+                    return (T) this.objectData;
+                case ARRAY:
+                    return (T) this.arrayData;
+                case BOOLEAN:
+                    return (T) this.booleanData;
+                case NUMBER:
+                    return (T) this.numberData;
+                case STRING:
+                    return (T) this.stringData;
+                case DATE:
+                    return (T) this.dateData;
+                case NULL:
+                default:
+                    return null;
+            }
+        } catch (ClassCastException e) {
+            return null;
         }
     }
 
@@ -199,7 +203,6 @@ public class ElementImpl implements JsonElement {
     /* (non-Javadoc)
     * @see java.lang.Object#toString()
     */
-    @SuppressWarnings("deprecation")
     @Override
     public String toString() {
         return this.serialize();

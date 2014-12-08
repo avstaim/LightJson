@@ -7,7 +7,10 @@ import com.staim.lightjson.JsonType;
 import java.text.CharacterIterator;
 import java.text.SimpleDateFormat;
 import java.text.StringCharacterIterator;
-import java.util.*;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Abstract Class for JsonElement Implementations
@@ -19,10 +22,10 @@ abstract class JsonAbstractElement implements JsonElement {
 
     //// Getters ////
 
-    @Override public Number getNumberData() { return null; }
-    @Override public String getStringData() { return null; }
-    @Override public Boolean getBooleanData() { return null; }
-    @Override public Date getDateData() { return null; }
+    @Override public Number getNumberData() { return getData(); }
+    @Override public String getStringData() { return getData(); }
+    @Override public Boolean getBooleanData() { return getData(); }
+    @Override public Date getDateData() { return getData(); }
 
     protected abstract Object getObjectData();
 
@@ -161,13 +164,9 @@ abstract class JsonAbstractElement implements JsonElement {
     protected JsonElement getJsonElementFromObject(Object object) throws JsonException {
         if (object == null)                return new JsonNullElement();
         if (object instanceof JsonElement) return (JsonElement)object;
-        if (object instanceof String)      return new JsonStringElement((String)object);
-        if (object instanceof Number)      return new JsonNumberElement((Number)object);
-        if (object instanceof Boolean)     return new JsonBooleanElement((Boolean)object);
         if (object instanceof Map)         return new JsonObjectElement((Map<String, JsonElement>) object);
         if (object instanceof Collection)  return new JsonArrayElement((Collection<JsonElement>)object);
-        if (object instanceof Date)        return new JsonDateElement((Date)object);
-        return new JsonNullElement();
+        return new JsonPlainElement<>(object);
     }
 
     /**
@@ -176,7 +175,7 @@ abstract class JsonAbstractElement implements JsonElement {
      * @param object - object to get JSON Type from
      * @return JsonType:
      *         Map<String, JsonElement> 	- "OBJECT",
-     *         List<JsonElement>			- "ARRAY",
+     *         Collection<JsonElement>		- "ARRAY",
      *         Boolean 						- "BOOLEAN",
      *         Number 						- "NUMBER",
      *         String 						- "STRING",
@@ -187,7 +186,7 @@ abstract class JsonAbstractElement implements JsonElement {
         if (object instanceof String) return JsonType.STRING;
         if (object instanceof Number) return JsonType.NUMBER;
         if (object instanceof Boolean) return JsonType.BOOLEAN;
-        if (object instanceof List) return JsonType.ARRAY;
+        if (object instanceof Collection) return JsonType.ARRAY;
         if (object instanceof Map) return JsonType.OBJECT;
         if (object instanceof Date)  return JsonType.DATE;
         return JsonType.NULL;

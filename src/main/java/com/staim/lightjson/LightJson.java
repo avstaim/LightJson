@@ -19,7 +19,7 @@ public class LightJson<T> implements Json<T> {
     private static JsonBuilder builder;
 
     private static Class<? extends JsonParser> parserClass = ParserScalable.class;
-    private static Class<? extends JsonSerializer> serializerClass = SerializerForkJoin.class;
+    private static Class<? extends JsonSerializer> serializerClass = SerializerRecursive.class;
 
     private JsonParser parser;
     private JsonSerializer serializer;
@@ -75,6 +75,11 @@ public class LightJson<T> implements Json<T> {
 
     private LightJson() {}
 
+    /**
+     * Get Instance
+     * @param <T> Type Of Object to marshalling/unmarshalling
+     * @return Instance of Json Interface
+     */
     public static <T> Json<T> json() { return new LightJson<>(); }
 
     @Override

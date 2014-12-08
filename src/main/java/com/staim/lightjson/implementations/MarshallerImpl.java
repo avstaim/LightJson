@@ -197,7 +197,7 @@ public class MarshallerImpl implements JsonMarshaller {
     }
 
     private static JsonElement processMap(Map map, Field field) throws JsonException {
-        JsonElement jsonElement = new JsonArrayElement();
+        JsonElement jsonElement = new JsonObjectElement();
         if (map.isEmpty()) return jsonElement;
         Class<?> keyClass;
         if (field != null) {

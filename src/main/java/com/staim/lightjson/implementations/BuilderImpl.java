@@ -2,7 +2,11 @@ package com.staim.lightjson.implementations;
 
 import com.staim.lightjson.JsonBuilder;
 import com.staim.lightjson.JsonElement;
-import com.staim.lightjson.implementations.elements.*;
+import com.staim.lightjson.JsonType;
+import com.staim.lightjson.implementations.elements.JsonArrayElement;
+import com.staim.lightjson.implementations.elements.JsonNullElement;
+import com.staim.lightjson.implementations.elements.JsonObjectElement;
+import com.staim.lightjson.implementations.elements.JsonPlainElement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,8 +50,9 @@ public class BuilderImpl implements JsonBuilder {
         };
     }
 
-    @Override public JsonElement string(String string) { return new JsonStringElement(string); }
-    @Override public JsonElement number(Number number) { return new JsonNumberElement(number); }
-    @Override public JsonElement bool(boolean bool) { return new JsonBooleanElement(bool); }
+    @Override public JsonElement string(String string) { return new JsonPlainElement<>(string, JsonType.STRING); }
+    @Override public JsonElement number(Number number) { return new JsonPlainElement<>(number, JsonType.NUMBER); }
+    @Override public JsonElement bool(boolean bool) { return new JsonPlainElement<>(bool, JsonType.BOOLEAN); }
+    @Override public <T> JsonElement auto(T object) { return new JsonPlainElement<>(object); }
     @Override public JsonElement nil() { return new JsonNullElement(); }
 }

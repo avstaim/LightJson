@@ -4,7 +4,7 @@ import com.staim.lightjson.JsonElement;
 import com.staim.lightjson.JsonType;
 
 /**
- * Json String Element
+ * Json Null Element
  *
  * Created by alexeyshcherbinin on 04.12.14.
  */

@@ -1,6 +1,5 @@
 package com.staim.lightjson.test;
 
-
 import com.staim.lightjson.*;
 import com.staim.lightjson.implementations.parsers.ParserScalable;
 import com.staim.lightjson.implementations.parsers.ParserSimple;
@@ -17,7 +16,7 @@ import java.util.Map;
 /**
  * Primary Testing
  *
- * Created by a_scherbinin on 18.06.14.
+ * Created by a_shcherbinin on 18.06.14.
  */
 public class JsonTest {
 
@@ -33,18 +32,8 @@ public class JsonTest {
 
         TestBean2 testBean2 = new TestBean2();
         testBean2.setInteger2(25);
-        testBean2.setString2("Whatszzupppp!!!");
+        testBean2.setString2("AaBbCcDdEeFf!!!");
         testBean2.setIntArray(intArray);
-
-        TestBean2 testBean21 = new TestBean2();
-        testBean21.setInteger2(50);
-        testBean21.setString2("aaa");
-        TestBean2 testBean22 = new TestBean2();
-        testBean22.setInteger2(51);
-        testBean22.setString2("bbb");
-        TestBean2 testBean23 = new TestBean2();
-        testBean23.setInteger2(52);
-        testBean23.setString2("ccc");
 
         Map<String, String> stringMap = new HashMap<>();
         stringMap.put("key1", "value1");
@@ -53,123 +42,135 @@ public class JsonTest {
 
         testBean.setTestBean2(testBean2);
 
-        List<Integer> myList = new ArrayList<>();
-        for (int i = 0; i < 10; i++) myList.add(i);
-        testBean.setIntegerList(myList);
+        List<Integer> integerList = new ArrayList<>();
+        for (int i = 0; i < 10; i++) integerList.add(i);
+        testBean.setIntegerList(integerList);
 
         System.out.println("Begin!");
 
-        String testJson;
+        String jsonString;
 
+        LightJson.setSerializerType(LightJson.SerializerType.SimpleRecursive);
         try {
-            Json<TestBean> jsonTestBean = new LightJson<>(testBean);
-            testJson = jsonTestBean.marshal();
-            System.out.println("marshal result: " + testJson);
+            jsonString = LightJson.json().marshaller(testBean).marshal();
+            System.out.println("marshal result: " + jsonString);
+            Assert.assertEquals(228, jsonString.length());
         } catch (JsonException e) {
             e.printStackTrace();
+            Assert.fail(e.getMessage());
+            return;
+        }
+
+        LightJson.setSerializerType(LightJson.SerializerType.ForkJoin);
+        try {
+            jsonString = LightJson.json().marshaller(testBean).marshal();
+            System.out.println("marshal result: " + jsonString);
+            Assert.assertEquals(228, jsonString.length());
+        } catch (JsonException e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+            return;
+        }
+
+        LightJson.setParserType(LightJson.ParserType.Simple);
+        try {
+            TestBean uTestBean = LightJson.json().unmarshaller(jsonString).unmarshal(TestBean.class);
+            Assert.assertNotNull(uTestBean);
+            Assert.assertEquals(true, uTestBean.isBool());
+            Assert.assertEquals(10, uTestBean.getNumber());
+            Assert.assertEquals("Hello world", uTestBean.getString());
+            Assert.assertEquals(2d, uTestBean.getDoubleValue());
+            List<Integer> uIntegerList = uTestBean.getIntegerList();
+            Assert.assertNotNull(uIntegerList);
+            Assert.assertEquals(10, uIntegerList.size());
+            Assert.assertEquals(0, (int)uIntegerList.get(0));
+            Assert.assertEquals(3, (int)uIntegerList.get(3));
+            Assert.assertEquals(5, (int)uIntegerList.get(5));
+            Assert.assertEquals(9, (int)uIntegerList.get(9));
+            TestBean2 uTestBean2 = uTestBean.getTestBean2();
+            Assert.assertNotNull(uTestBean2);
+            Assert.assertEquals(25, uTestBean2.getInteger2());
+            Assert.assertEquals("AaBbCcDdEeFf!!!", uTestBean2.getString2());
+            int[] uIntArray = uTestBean2.getIntArray();
+            Assert.assertNotNull(uIntArray);
+            Assert.assertEquals(5, uIntArray.length);
+            Assert.assertEquals(2, uIntArray[0]);
+            Assert.assertEquals(6, uIntArray[2]);
+            Assert.assertEquals(10, uIntArray[4]);
+            Map<String, String> uStringMap = uTestBean2.getStringMap();
+            Assert.assertNotNull(uStringMap);
+            Assert.assertEquals(2, uStringMap.size());
+            Assert.assertEquals("value1", uStringMap.get("key1"));
+            Assert.assertEquals("value2", uStringMap.get("key2"));
+        } catch (JsonException e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
+            return;
+        }
+
+        LightJson.setParserType(LightJson.ParserType.Scalable);
+        try {
+            TestBean uTestBean = LightJson.json().unmarshaller(jsonString).unmarshal(TestBean.class);
+            Assert.assertNotNull(uTestBean);
+            Assert.assertEquals(true, uTestBean.isBool());
+            Assert.assertEquals(10, uTestBean.getNumber());
+            Assert.assertEquals("Hello world", uTestBean.getString());
+            Assert.assertEquals(2d, uTestBean.getDoubleValue());
+            List<Integer> uIntegerList = uTestBean.getIntegerList();
+            Assert.assertNotNull(uIntegerList);
+            Assert.assertEquals(10, uIntegerList.size());
+            Assert.assertEquals(0, (int)uIntegerList.get(0));
+            Assert.assertEquals(3, (int)uIntegerList.get(3));
+            Assert.assertEquals(5, (int)uIntegerList.get(5));
+            Assert.assertEquals(9, (int) uIntegerList.get(9));
+            TestBean2 uTestBean2 = uTestBean.getTestBean2();
+            Assert.assertNotNull(uTestBean2);
+            Assert.assertEquals(25, uTestBean2.getInteger2());
+            Assert.assertEquals("AaBbCcDdEeFf!!!", uTestBean2.getString2());
+            int[] uIntArray = uTestBean2.getIntArray();
+            Assert.assertNotNull(uIntArray);
+            Assert.assertEquals(5, uIntArray.length);
+            Assert.assertEquals(2, uIntArray[0]);
+            Assert.assertEquals(6, uIntArray[2]);
+            Assert.assertEquals(10, uIntArray[4]);
+            Map<String, String> uStringMap = uTestBean2.getStringMap();
+            Assert.assertNotNull(uStringMap);
+            Assert.assertEquals(2, uStringMap.size());
+            Assert.assertEquals("value1", uStringMap.get("key1"));
+            Assert.assertEquals("value2", uStringMap.get("key2"));
+        } catch (JsonException e) {
+            e.printStackTrace();
+            Assert.fail(e.getMessage());
             return;
         }
 
         try {
-            long start = System.currentTimeMillis();
-            Json<TestBean> jsonTestBean = new LightJson<>(testJson);
-            TestBean uTestBean = jsonTestBean.unmarshal(TestBean.class);
-            long end = System.currentTimeMillis();
-            System.out.println("parsing time: " + (end - start) + "ms.");
-            System.out.println("unmarshal result: " + uTestBean.getString() + " - " + uTestBean.getNumber() + " - " + uTestBean.isBool() + " - " + uTestBean.getIntegerList().size() + " - " + uTestBean.getDoubleValue());
+            JsonParser parserSimple = new ParserSimple();
+            JsonParser parserScalable = new ParserScalable();
 
-            for (Integer i : uTestBean.getIntegerList())
-                System.out.println("list: " + i);
+            JsonElement element1 = parserSimple.parse(TestJson1.jsonString);
+            JsonElement element2 = parserScalable.parse(TestJson1.jsonString);
 
-            System.out.println("unmarshal bean2: " + uTestBean.getTestBean2().getInteger2() + " - " + uTestBean.getTestBean2().getString2() + " - " + uTestBean.getTestBean2().getIntArray().length);
+            Assert.assertEquals(JsonType.OBJECT, element1.getType());
+            Assert.assertEquals(JsonType.OBJECT, element2.getType());
 
-            for (int i : uTestBean.getTestBean2().getIntArray())
-                System.out.println("intArray: " + i);
+            JsonSerializer serializerRecursive = new SerializerRecursive();
+            JsonSerializer serializerForkJoin = new SerializerForkJoin();
 
-            for (Map.Entry<String, String> entry : uTestBean.getTestBean2().getStringMap().entrySet())
-                System.out.println("key: " + entry.getKey() +"; value: " + entry.getValue());
+            String restoredString1 = serializerForkJoin.serialize(element1);
+            String restoredString2 = serializerForkJoin.serialize(element2);
+            String restoredString3 = serializerRecursive.serialize(element1);
+            String restoredString4 = serializerRecursive.serialize(element2);
+
+            int length = 57054;
+            Assert.assertEquals(length, restoredString1.length());
+            Assert.assertEquals(length, restoredString2.length());
+            Assert.assertEquals(length, restoredString3.length());
+            Assert.assertEquals(length, restoredString4.length());
         } catch (JsonException e) {
             e.printStackTrace();
+            Assert.fail(e.getMessage());
         }
 
-        try {
-            JsonParser parserOld = new ParserSimple();
-            JsonParser parserNew = new ParserScalable();
-
-            long start = System.currentTimeMillis();
-            JsonElement element = parserOld.parse(TestJson1.tst);
-            long end = System.currentTimeMillis();
-            System.out.println("TST parsing time old parser: " + (end - start) + "ms.");
-
-            start = System.currentTimeMillis();
-            element = parserNew.parse(TestJson1.tst);
-            end = System.currentTimeMillis();
-            System.out.println("TST parsing time new parser: " + (end - start) + "ms.");
-
-            start = System.currentTimeMillis();
-            for (int i = 0; i<100; i++)
-                element = parserOld.parse(testJson);
-            end = System.currentTimeMillis();
-            System.out.println("testJson parsing time old parser: " + (end - start) + "ms.");
-
-            System.out.println(element.serialize());
-            System.out.println(LightJson.json().serializer().serialize(element));
-
-            start = System.currentTimeMillis();
-            for (int i = 0; i<100; i++)
-                element = parserNew.parse(testJson);
-            end = System.currentTimeMillis();
-            System.out.println("testJson parsing time new parser: " + (end - start) + "ms.");
-
-            element = parserNew.parse(TestJson1.tst);
-
-            start = System.currentTimeMillis();
-            String restoredStr1 = element.serialize();
-            end = System.currentTimeMillis();
-            System.out.println("Old serializer: " + (end - start) + "ms.");
-
-            start = System.currentTimeMillis();
-            String restoredStr2 = (new SerializerForkJoin()).serialize(element);
-            end = System.currentTimeMillis();
-            System.out.println("New serializer: " + (end - start) + "ms.");
-
-            start = System.currentTimeMillis();
-            String restoredStr3 = (new SerializerRecursive()).serialize(element);
-            end = System.currentTimeMillis();
-            System.out.println("New serializer (NoFJP): " + (end - start) + "ms.");
-
-            Assert.assertEquals(restoredStr1.length(), restoredStr2.length());
-            Assert.assertEquals(restoredStr1.length(), restoredStr3.length());
-
-            element = parserNew.parse(testJson);
-
-            final int iterations = 100;
-
-            start = System.currentTimeMillis();
-            for (int i = 0; i < iterations; i++)
-                restoredStr1 = element.serialize();
-            end = System.currentTimeMillis();
-            System.out.println("Old serializer: " + (end - start) + "ms.");
-
-            start = System.currentTimeMillis();
-            for (int i = 0; i < iterations; i++)
-                restoredStr2 = (new SerializerForkJoin()).serialize(element);
-            end = System.currentTimeMillis();
-            System.out.println("New serializer: " + (end - start) + "ms.");
-
-            start = System.currentTimeMillis();
-            for (int i = 0; i < iterations; i++)
-                restoredStr3 = (new SerializerRecursive()).serialize(element);
-            end = System.currentTimeMillis();
-            System.out.println("New serializer (NoFJP): " + (end - start) + "ms.");
-
-            Assert.assertEquals(restoredStr1.length(), restoredStr2.length());
-            Assert.assertEquals(restoredStr1.length(), restoredStr3.length());
-
-            //String restoredStr = LightJson.json().marshaller(element).marshal();
-            System.out.println("restoredStr: " + restoredStr2);
-        } catch (JsonException e) {
-            e.printStackTrace();
-        }
     }
 }

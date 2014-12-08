@@ -10,7 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Json Array Element
+ * Json Array Element []
  *
  * Created by alexeyshcherbinin on 04.12.14.
  */
