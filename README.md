@@ -1,4 +1,4 @@
-LightJson is a simple lightweight Java library for working with JSON for those who don't want heavy implementations as Google GSON, etc...
+LightJson is a simple lightweight Java library for working with JSON is designed to be light, fast, simple and easy to use.
 
 **Using LightJson**
 
@@ -41,8 +41,7 @@ _**NOTE:** Unmarshalling Collections of Collections, Maps of Maps, Collections o
 ```java
 Bean bean = new Bean();
 bean.setField(field);
-Json<Bean> jsonBean = new LightJson<>(bean);
-String testJson = jsonBean.marshal();
+String testJson = LightJson.to(bean);
 System.out.println("marshal result: " + testJson);
 ```
 
@@ -52,8 +51,7 @@ You will get :
 3. Unmarshal from JSON
 
 ```java
-Json<Bean> jsonBean2 = new LightJson<>(testJson);
-Bean uBean = jsonBean2.unmarshal(Bean.class);
+Bean uBean = LightJson.from(testJson, Bean.class);
 field = uBean.getField();
 ```
 
