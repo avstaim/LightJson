@@ -31,12 +31,14 @@ abstract class JsonAbstractElement implements JsonElement {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getData() {
-        try {
-            return (T)getObjectData();
-        } catch (ClassCastException e) {
-            return null;
-        }
+    public <T> T getData() { return (T)getObjectData(); }
+
+    @Override
+    public <T> T getData(Class<T> dataClass) {
+        Object object = getObjectData();
+        if (dataClass.isInstance(object))
+            return dataClass.cast(object);
+        return null;
     }
 
     @Override

@@ -159,6 +159,14 @@ public class ElementImpl implements JsonElement {
     }
 
     @Override
+    public <T> T getData(Class<T> dataClass) {
+        Object object = getData();
+        if (dataClass.isInstance(object))
+            return dataClass.cast(object);
+        return null;
+    }
+
+    @Override
     public JsonElement get(int index) throws JsonException {
         verifyArray();
         return arrayData.get(index);

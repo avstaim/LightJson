@@ -6,7 +6,7 @@
 
     <groupId>com.staim</groupId>
     <artifactId>LightJson</artifactId>
-    <version>0.2-beta1</version>
+    <version>0.2-beta2</version>
     <packaging>jar</packaging>
 
     <description>Simple lightweight Java library for working with JSON</description>

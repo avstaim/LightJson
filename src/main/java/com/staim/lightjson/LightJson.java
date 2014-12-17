@@ -125,4 +125,34 @@ public class LightJson<T> implements Json<T> {
     public JsonSerializer serializer() {
         return serializer;
     }
+
+    /** fast syntax */
+
+    public static JsonElement from(String jsonString) {
+        try {
+            return json().parser().parse(jsonString);
+        } catch (JsonException e) {
+            return null;
+        }
+    }
+
+    public static <T> T from(String jsonString, Class<T> entityClass) {
+        try {
+            return json().unmarshaller(jsonString).unmarshal(entityClass);
+        } catch (JsonException e) {
+            return null;
+        }
+    }
+
+    public static <T> String to(T t) {
+        try {
+            return json().marshaller(t).marshal();
+        } catch (JsonException e) {
+            return "";
+        }
+    }
+
+    public static String to(JsonElement jsonElement) {
+        return json().serializer().serialize(jsonElement);
+    }
 }

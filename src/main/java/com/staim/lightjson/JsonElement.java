@@ -48,8 +48,18 @@ public interface JsonElement {
      * Get JsonElement contents
      *
      * @return Generified Object
+     * @throws ClassCastException when wrong object type
      */
-    <T> T getData();
+    <T> T getData() throws ClassCastException;
+
+    /**
+     * Get JsonElement contents (type-safe version)
+     *
+     * @param dataClass - class of the expected data to avoid causing ClassCastException
+     * @return Generified Object
+     */
+
+    <T> T getData(Class<T> dataClass);
 
     /**
      * Get sub element of Array-type Json Element
