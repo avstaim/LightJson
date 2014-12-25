@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 /**
  * Mark Java Bean method as getter for Json Object
  *
- * Created by a_scherbinin on 17.04.14.
+ * Created by a_shcherbinin on 17.04.14.
  */
 
 @Target({ElementType.FIELD})

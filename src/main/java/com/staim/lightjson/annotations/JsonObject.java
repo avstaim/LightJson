@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * JSON Object Annotation is used to mark Java Bean as json serializable for all it's getter and setter fields
  *
- * Created by a_scherbinin on 17.04.14.
+ * Created by a_shcherbinin on 17.04.14.
  */
 
 @Target({ElementType.TYPE})
