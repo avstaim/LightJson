@@ -41,6 +41,10 @@ public class LightJson<T> implements Json<T> {
         ForkJoin // Better for large and complex JSONs, Very Bad on tons of simple JSONs.
     }
 
+    /**
+     * Set Parser Type: Simple or Scalable (recommended)
+     * @param type - parser type
+     */
     public static void setParserType(ParserType type) {
         switch (type) {
             case Simple:
@@ -52,6 +56,10 @@ public class LightJson<T> implements Json<T> {
         }
     }
 
+    /**
+     * Set Serializer Type: Recursive (recommended) or ForkJoin
+     * @param type - parser type
+     */
     public static void setSerializerType(SerializerType type) {
         switch (type) {
             case SimpleRecursive:
@@ -106,21 +114,39 @@ public class LightJson<T> implements Json<T> {
         return builder;
     }
 
+    /**
+     * Get Marshaller
+     * @param t - Object to marshal
+     * @return JsonMarshaller instance
+     */
     @Override
     public JsonMarshaller marshaller(T t) {
         return new MarshallerImpl(t, serializer);
     }
 
+    /**
+     * Get Unmarshaller
+     * @param jsonString - Json String to unmarshal
+     * @return JsonUnmarshaller instance
+     */
     @Override
     public JsonUnmarshaller unmarshaller(String jsonString) {
         return new UnmarshallerImpl(parser, jsonString);
     }
 
+    /**
+     * Get Parser
+     * @return JsonParser instance
+     */
     @Override
     public JsonParser parser() {
         return parser;
     }
 
+    /**
+     * Get Serializer
+     * @return JsonSerializer instance
+     */
     @Override
     public JsonSerializer serializer() {
         return serializer;
@@ -128,6 +154,12 @@ public class LightJson<T> implements Json<T> {
 
     /** fast syntax */
 
+    /**
+     * Create a class, implementing JsonElement interface from Json String.
+     *
+     * @param jsonString - Json String to process
+     * @return Class, implementing JsonElement interface or null, when Json Parsing Error had occurred.
+     */
     public static JsonElement from(String jsonString) {
         try {
             return json().parser().parse(jsonString);
@@ -136,6 +168,14 @@ public class LightJson<T> implements Json<T> {
         }
     }
 
+    /**
+     * Create class, annotated as @JsonObject from Json String.
+     *
+     * @param jsonString - Json String to process
+     * @param entityClass - reference to class, annotated as @JsonObject
+     * @param <T> - generic class type
+     * @return Resulting class or null, when Json Parsing Error had occurred.
+     */
     public static <T> T from(String jsonString, Class<T> entityClass) {
         try {
             return json().unmarshaller(jsonString).unmarshal(entityClass);
@@ -144,6 +184,13 @@ public class LightJson<T> implements Json<T> {
         }
     }
 
+    /**
+     * Marshal java object, annotated as @JsonObject, into Json String.
+     *
+     * @param t - object to process.
+     * @param <T> - generic class type
+     * @return Json String or null, when error is occurred
+     */
     public static <T> String to(T t) {
         try {
             return json().marshaller(t).marshal();
@@ -152,6 +199,12 @@ public class LightJson<T> implements Json<T> {
         }
     }
 
+    /**
+     * Serialize JsonElement into Json String.
+     *
+     * @param jsonElement - Json Element to process.
+     * @return Json String
+     */
     public static String to(JsonElement jsonElement) {
         return json().serializer().serialize(jsonElement);
     }
